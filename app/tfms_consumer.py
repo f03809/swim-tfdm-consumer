@@ -105,6 +105,10 @@ class TfmsConsumer:
                         "status": doc.get("status"),
                         "gufi": doc.get("gufi"),
                         "tfm_id": doc.get("tfm_id"),
+                        "flight_number": doc.get("flight_number"),
+                        "departure_airport": doc.get("departure_airport"),
+                        "arrival_airport": doc.get("arrival_airport"),
+                        "details": doc.get("raw_flight_data"),
                     }
                 },
                 "$set": {"updated_at": now},
