@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.api import router
 from app.consumer import TfdmConsumer
 from app.db import close_db
+from app.tbfm_consumer import TbfmConsumer
 from app.tfms_consumer import TfmsConsumer
 
 logging.basicConfig(
@@ -14,7 +15,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 
-consumers = [TfdmConsumer(), TfmsConsumer()]
+consumers = [TfdmConsumer(), TfmsConsumer(), TbfmConsumer()]
 
 
 @asynccontextmanager
@@ -29,7 +30,7 @@ async def lifespan(app: FastAPI) -> Any:
 
 app = FastAPI(
     title="SWIM TFDM Consumer",
-    description="Consumes faa-tfdm-raw and faa-tfms-raw, persists flight data, and serves an API + UI.",
+    description="Consumes faa-tfdm-raw, faa-tfms-raw, and faa-tbfm-raw, persists flight data, and serves an API + UI.",
     version="0.1.0",
     lifespan=lifespan,
 )

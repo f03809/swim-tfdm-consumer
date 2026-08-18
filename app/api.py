@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.db import get_collection, get_route_collection, get_tfms_collection
+from app.db import get_collection, get_route_collection, get_tbfm_collection, get_tfms_collection
 from app.parser import _content, _get, _normalize_airport
 
 logger = logging.getLogger(__name__)
@@ -212,6 +212,8 @@ def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
     }
     if doc.get("tfmsSummary"):
         clean["tfmsSummary"] = doc["tfmsSummary"]
+    if doc.get("tbfmSummary"):
+        clean["tbfmSummary"] = doc["tbfmSummary"]
     return {k: v for k, v in clean.items() if v is not None}
 
 
@@ -226,7 +228,7 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
     )
     if not flights:
         raise HTTPException(status_code=404, detail="Flight not found")
-    doc = max(flights, key=lambda f: (bool(f.get("tfmsSummary")), f.get("updated_at")))
+    doc = max(flights, key=lambda f: (bool(f.get("tfmsSummary")), bool(f.get("tbfmSummary")), f.get("updated_at")))
     _normalize_flight_airports(doc)
     doc.pop("tfms_events", None)
     return _prepare(_clean_flight_payload(doc))
@@ -285,10 +287,58 @@ async def tfms_detail(request: Request, tfms_id: str) -> Any:
     )
 
 
+@router.get("/flights/{flight_number}/tbfm", response_class=HTMLResponse)
+async def flight_tbfm(request: Request, flight_number: str) -> Any:
+    tbfm_coll = await get_tbfm_collection()
+    messages = (
+        await tbfm_coll.find({"flight_number": flight_number.upper(), "status": "active"})
+        .sort("_id", -1)
+        .limit(200)
+        .to_list(length=200)
+    )
+    for msg in messages:
+        if msg.get("departure_airport"):
+            msg["departure_airport"] = _normalize_airport(msg["departure_airport"])
+        if msg.get("arrival_airport"):
+            msg["arrival_airport"] = _normalize_airport(msg["arrival_airport"])
+    return templates.TemplateResponse(
+        request,
+        "tbfm.html",
+        {
+            "flight_number": flight_number.upper(),
+            "tbfm_messages": _prepare(messages),
+        },
+    )
+
+
+@router.get("/tbfm/{tbfm_id}", response_class=HTMLResponse)
+async def tbfm_detail(request: Request, tbfm_id: str) -> Any:
+    tbfm_coll = await get_tbfm_collection()
+    try:
+        message = await tbfm_coll.find_one({"_id": ObjectId(tbfm_id), "status": "active"})
+    except Exception:
+        raise HTTPException(status_code=404, detail="TBFM message not found")
+    if not message:
+        raise HTTPException(status_code=404, detail="TBFM message not found")
+    if message.get("departure_airport"):
+        message["departure_airport"] = _normalize_airport(message["departure_airport"])
+    if message.get("arrival_airport"):
+        message["arrival_airport"] = _normalize_airport(message["arrival_airport"])
+    return templates.TemplateResponse(
+        request,
+        "tbfm_detail.html",
+        {
+            "flight_number": message.get("flight_number") or "",
+            "message": _prepare(message),
+        },
+    )
+
+
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request, q: str | None = None) -> Any:
     coll = await get_collection()
     tfms_coll = await get_tfms_collection()
+    tbfm_coll = await get_tbfm_collection()
     query: dict[str, Any] = {"status": "active"}
     if q:
         query["flight_number"] = q.strip().upper()
@@ -302,9 +352,12 @@ async def index(request: Request, q: str | None = None) -> Any:
     for flight in flights:
         _normalize_flight_airports(flight)
 
+    flight_numbers = {f.get("flight_number") for f in flights if f.get("flight_number")}
     tfms_counts = {}
-    for fn in {f.get("flight_number") for f in flights if f.get("flight_number")}:
+    tbfm_counts = {}
+    for fn in flight_numbers:
         tfms_counts[fn] = await tfms_coll.count_documents({"flight_number": fn, "status": "active"})
+        tbfm_counts[fn] = await tbfm_coll.count_documents({"flight_number": fn, "status": "active"})
 
     return templates.TemplateResponse(
         request,
@@ -312,6 +365,7 @@ async def index(request: Request, q: str | None = None) -> Any:
         {
             "flights": _prepare(flights),
             "tfms_counts": tfms_counts,
+            "tbfm_counts": tbfm_counts,
             "q": q or "",
         },
     )

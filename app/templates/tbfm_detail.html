@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TBFM Message Detail</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f7f7; }
+    h1 { margin-bottom: 1rem; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta { background: white; padding: 1rem; border: 1px solid #ddd; margin-bottom: 1rem; }
+    .meta p { margin: 0.25rem 0; }
+    pre { background: white; padding: 1rem; border: 1px solid #ddd; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>TBFM Message Detail</h1>
+  <p>
+    <a href="/flights/{{ flight_number }}/tbfm">&larr; Back to TBFM list for {{ flight_number }}</a>
+    &nbsp;|&nbsp;
+    <a href="/">Back to flights</a>
+  </p>
+
+  <div class="meta">
+    <p><strong>Message Type:</strong> {{ message.msg_type or '-' }}</p>
+    <p><strong>Envelope Time:</strong> {{ message.env_time or '-' }}</p>
+    <p><strong>TMA Source:</strong> {{ message.env_srce or '-' }}</p>
+    <p><strong>Message ID:</strong> {{ message.msg_id or '-' }}</p>
+    <p><strong>GUFI:</strong> {{ message.gufi or '-' }}</p>
+    <p><strong>Departure:</strong> {{ message.departure_airport or '-' }}</p>
+    <p><strong>Arrival:</strong> {{ message.arrival_airport or '-' }}</p>
+  </div>
+
+  <h2>Raw XML</h2>
+  <pre>{{ message.raw_tbfm_data | e }}</pre>
+</body>
+</html>

@@ -6,6 +6,7 @@ _client: AsyncIOMotorClient | None = None
 _db: AsyncIOMotorDatabase | None = None
 _collection: AsyncIOMotorCollection | None = None
 _tfms_collection: AsyncIOMotorCollection | None = None
+_tbfm_collection: AsyncIOMotorCollection | None = None
 _route_collection: AsyncIOMotorCollection | None = None
 
 
@@ -36,6 +37,19 @@ async def get_tfms_collection() -> AsyncIOMotorCollection:
         await _tfms_collection.create_index("flight_number")
         await _tfms_collection.create_index("linked_flight_id")
     return _tfms_collection
+
+
+async def get_tbfm_collection() -> AsyncIOMotorCollection:
+    global _client, _db, _tbfm_collection
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _db = _client[settings.mongodb_db]
+    if _tbfm_collection is None:
+        _tbfm_collection = _db[settings.mongodb_tbfm_collection]
+        await _tbfm_collection.create_index("gufi")
+        await _tbfm_collection.create_index("flight_number")
+        await _tbfm_collection.create_index("linked_flight_id")
+    return _tbfm_collection
 
 
 async def get_route_collection() -> AsyncIOMotorCollection:

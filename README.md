@@ -1,12 +1,13 @@
 # SWIM TFDM Consumer
 
-This service consumes TFDM and TFMS messages from a SWIM Kafka broker, stores them in MongoDB, and exposes a small web UI and REST API to inspect flights and their latest TFMS route data.
+This service consumes TFDM, TFMS, and TBFM messages from a SWIM Kafka broker, stores them in MongoDB, and exposes a small web UI and REST API to inspect flights and their latest TFMS/TBFM data.
 
 ## What it does
 
 - **TFDM consumer** (`app/consumer.py`): reads `faa-tfdm-raw`, parses flight records, and stores them in the `flights` collection.
 - **TFMS consumer** (`app/tfms_consumer.py`): reads `faa-tfms-raw`, parses per-flight TFMS messages, stores them in `tfms_messages`, and maintains the latest planned route in `flight_routes`.
-- **Web UI** (`app/templates/`): lists active flights with a TFMS message count and links to per-flight TFMS message lists and detail pages.
+- **TBFM consumer** (`app/tbfm_consumer.py`): reads `faa-tbfm-raw`, parses per-flight TBFM XML metering messages, and stores them in `tbfm_messages`.
+- **Web UI** (`app/templates/`): lists active flights with TFMS and TBFM message counts and links to per-flight message lists and detail pages.
 - **REST API** (`app/api.py`): exposes JSON endpoints for flight snapshots and routes.
 
 ## Environment variables
@@ -26,18 +27,21 @@ This service consumes TFDM and TFMS messages from a SWIM Kafka broker, stores th
 
 ## MongoDB collections
 
-- `flights` — current TFDM flight snapshots, enriched with a `tfmsSummary` of useful TFMS data.
+- `flights` — current TFDM flight snapshots, enriched with `tfmsSummary` and `tbfmSummary` blocks of useful TFMS and TBFM data.
 - `tfms_messages` — all parsed TFMS messages with a link to a TFDM flight when one can be matched.
+- `tbfm_messages` — all parsed TBFM XML metering messages with a link to a TFDM flight when one can be matched.
 - `flight_routes` — the latest known planned route per `flight_number`/`departure`/`arrival`, updated as new `FlightRoute`, `FlightSectors`, or `flightPlanAmendmentInformation` messages arrive.
 
 ## API endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/flights/{flight_number}` | Current TFDM flight snapshot, including a `tfmsSummary` of the latest useful TFMS data |
+| GET | `/flights/{flight_number}` | Current TFDM flight snapshot, including `tfmsSummary` and `tbfmSummary` |
 | GET | `/flights/{flight_number}/tfms` | HTML page listing TFMS messages for the flight |
+| GET | `/flights/{flight_number}/tbfm` | HTML page listing TBFM messages for the flight |
 | GET | `/flights/{flight_number}/route` | Latest planned route for the flight (JSON) |
 | GET | `/tfms/{tfms_id}` | HTML detail page with raw TFMS message JSON |
+| GET | `/tbfm/{tbfm_id}` | HTML detail page with raw TBFM message XML |
 | GET | `/` | HTML flight list |
 
 ## Flight API fields
@@ -48,6 +52,7 @@ This service consumes TFDM and TFMS messages from a SWIM Kafka broker, stores th
 - `departure` block: `airport`, `offBlockTime`, `runway`, `estimatedRunwayDepartureTime`, `earliestRunwayDepartureTime`, `estimatedTaxiOutTime`, `predictedDelay`, `currentDelay`, `predictedSpot`, `fix`.
 - `arrival` block: `airport`, `fix`, `estimatedArrivalTime`, `actualArrivalTime`, `runway`, `estimatedTaxiInTime`, `elapsedTaxiInTime`, `predictedSpot`, `actualSpot`, `movementAreaActualExitTime`.
 - `tfmsSummary` block: the latest useful TFMS data matched to the flight.
+- `tbfmSummary` block: the latest useful TBFM metering data matched to the flight, including meter fix, ETA at the meter fix, runway ETA, estimated departure time, runway assignment, miles-in-trail, and the originating TMA facility.
 
 ## TFDM update behavior
 
@@ -65,6 +70,18 @@ When a TFMS message is linked to a TFDM flight, the `flights` record is updated 
 - `tfm_id`, `gufi`, `tfms_message_count`.
 
 The first `igtd` is only set once and is not overwritten by later messages.
+
+## TBFM summary in flight records
+
+When a TBFM message is linked to a TFDM flight, the `flights` record is updated with a `tbfmSummary` containing:
+
+- `tbfm_message_count` — count of linked TBFM messages.
+- `latest_env_srce`, `latest_tma_id`, `latest_air_type` — originating TMA facility and message type.
+- `latest_meter_fix`, `latest_meter_fix_eta` — the metering fix and its latest ETA.
+- `latest_runway_eta` — latest runway arrival ETA.
+- `latest_etd` — latest estimated departure time.
+- `latest_tbfm_runway` — runway designator from TBFM.
+- `latest_miles_in_trail` — any miles-in-trail / metering restriction text.
 
 ## Airport code normalization
 
