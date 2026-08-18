@@ -39,7 +39,14 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
     )
     if not flights:
         raise HTTPException(status_code=404, detail="Flight not found")
-    doc = max(flights, key=lambda f: (len(f.get("tfms_events") or []), f.get("created_at")))
+    doc = max(
+        flights,
+        key=lambda f: (
+            any("details" in e for e in f.get("tfms_events") or []),
+            len(f.get("tfms_events") or []),
+            f.get("updated_at"),
+        ),
+    )
     return _prepare(doc)
 
 
