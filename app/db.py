@@ -13,6 +13,7 @@ async def get_collection() -> AsyncIOMotorCollection:
     if _client is None:
         _client = AsyncIOMotorClient(settings.mongodb_url)
         _db = _client[settings.mongodb_db]
+    if _collection is None:
         _collection = _db[settings.mongodb_collection]
         await _collection.create_index("tfdm_id")
         await _collection.create_index("tfm_id")
