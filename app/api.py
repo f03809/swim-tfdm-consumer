@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.db import get_collection
+from app.db import get_collection, get_tfms_collection
 
 logger = logging.getLogger(__name__)
 
@@ -31,31 +31,41 @@ def _prepare(doc: Any) -> Any:
 @router.get("/flights/{flight_number}")
 async def get_flight(flight_number: str) -> dict[str, Any]:
     coll = await get_collection()
-    flights = await (
-        coll.find({"flight_number": flight_number.upper(), "status": "active"})
-        .sort("created_at", -1)
-        .limit(50)
-        .to_list(length=50)
+    doc = await coll.find_one(
+        {"flight_number": flight_number.upper(), "status": "active"},
+        sort=[("created_at", -1)],
     )
-    if not flights:
+    if not doc:
         raise HTTPException(status_code=404, detail="Flight not found")
-    doc = max(
-        flights,
-        key=lambda f: (
-            any("details" in e for e in f.get("tfms_events") or []),
-            len(f.get("tfms_events") or []),
-            f.get("updated_at"),
-        ),
-    )
     return _prepare(doc)
+
+
+@router.get("/flights/{flight_number}/tfms", response_class=HTMLResponse)
+async def flight_tfms(request: Request, flight_number: str) -> Any:
+    tfms_coll = await get_tfms_collection()
+    messages = (
+        await tfms_coll.find({"flight_number": flight_number.upper(), "status": "active"})
+        .sort("_id", -1)
+        .limit(200)
+        .to_list(length=200)
+    )
+    return templates.TemplateResponse(
+        request,
+        "tfms.html",
+        {
+            "flight_number": flight_number.upper(),
+            "tfms_messages": _prepare(messages),
+        },
+    )
 
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request, q: str | None = None) -> Any:
     coll = await get_collection()
+    tfms_coll = await get_tfms_collection()
     query: dict[str, Any] = {"status": "active"}
     if q:
-        query["flight_number"] = {"$regex": q.strip(), "$options": "i"}
+        query["flight_number"] = q.strip().upper()
 
     flights = (
         await coll.find(query)
@@ -64,11 +74,16 @@ async def index(request: Request, q: str | None = None) -> Any:
         .to_list(length=50)
     )
 
+    tfms_counts = {}
+    for fn in {f.get("flight_number") for f in flights if f.get("flight_number")}:
+        tfms_counts[fn] = await tfms_coll.count_documents({"flight_number": fn, "status": "active"})
+
     return templates.TemplateResponse(
         request,
         "index.html",
         {
             "flights": _prepare(flights),
+            "tfms_counts": tfms_counts,
             "q": q or "",
         },
     )

@@ -35,6 +35,7 @@
         <th>Created</th>
         <th>Departure</th>
         <th>Arrival</th>
+        <th>TFMS Messages</th>
       </tr>
     </thead>
     <tbody>
@@ -54,10 +55,17 @@
         <td class="muted">{{ flight.created_at }}</td>
         <td>{{ flight.departure.departurePointText if flight.departure else '-' }}</td>
         <td>{{ flight.arrival.destinationPointText if flight.arrival else '-' }}</td>
+        <td>
+          {% if flight.flight_number %}
+            <a href="/flights/{{ flight.flight_number }}/tfms">{{ tfms_counts.get(flight.flight_number, 0) }}</a>
+          {% else %}
+            -
+          {% endif %}
+        </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="8" style="text-align: center;">No flights found.</td>
+        <td colspan="9" style="text-align: center;">No flights found.</td>
       </tr>
       {% endfor %}
     </tbody>

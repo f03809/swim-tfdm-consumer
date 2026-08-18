@@ -94,26 +94,6 @@ class TfmsConsumer:
         if not flight:
             return
 
-        await flight_coll.update_one(
-            {"_id": flight["_id"]},
-            {
-                "$push": {
-                    "tfms_events": {
-                        "tfms_id": str(tfms_id),
-                        "msg_type": doc.get("msg_type"),
-                        "source_time_stamp": doc.get("source_time_stamp"),
-                        "status": doc.get("status"),
-                        "gufi": doc.get("gufi"),
-                        "tfm_id": doc.get("tfm_id"),
-                        "flight_number": doc.get("flight_number"),
-                        "departure_airport": doc.get("departure_airport"),
-                        "arrival_airport": doc.get("arrival_airport"),
-                        "details": doc.get("raw_flight_data"),
-                    }
-                },
-                "$set": {"updated_at": now},
-            },
-        )
         await tfms_coll.update_one(
             {"_id": tfms_id},
             {"$set": {"linked_flight_id": str(flight["_id"]), "updated_at": now}},
