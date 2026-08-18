@@ -63,6 +63,7 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
     if not doc:
         raise HTTPException(status_code=404, detail="Flight not found")
     _normalize_flight_airports(doc)
+    doc.pop("tfms_events", None)
     return _prepare(doc)
 
 
