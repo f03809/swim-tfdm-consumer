@@ -1,0 +1,20 @@
+[project]
+name = "swim-tfdm-consumer"
+version = "0.1.0"
+description = "TFDM consumer, API, and UI for SWIM flight data"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "motor",
+    "aiokafka",
+    "pydantic>=2",
+    "pydantic-settings",
+    "jinja2",
+]
+
+[project.optional-dependencies]
+dev = ["httpx", "pytest", "pytest-asyncio"]
+
+[tool.setuptools]
+packages = ["app"]

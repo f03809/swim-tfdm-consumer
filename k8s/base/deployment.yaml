@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swim-tfdm-consumer
+  namespace: swim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: swim-tfdm-consumer
+  template:
+    metadata:
+      labels:
+        app: swim-tfdm-consumer
+    spec:
+      containers:
+      - name: consumer
+        image: ghcr.io/f03809/swim-tfdm-consumer:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+        - name: MONGODB_URL
+          value: "mongodb://10.0.0.16:27017"
+        - name: MONGODB_DB
+          value: "swim_tfdm_consumer"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "10.0.0.94:9092"
+        - name: KAFKA_TOPIC
+          value: "faa-tfdm-raw"
+        - name: KAFKA_GROUP_ID
+          value: "swim-tfdm-consumer"

@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+motor
+aiokafka
+pydantic>=2
+pydantic-settings
+jinja2
