@@ -31,12 +31,15 @@ def _prepare(doc: Any) -> Any:
 @router.get("/flights/{flight_number}")
 async def get_flight(flight_number: str) -> dict[str, Any]:
     coll = await get_collection()
-    doc = await coll.find_one(
-        {"flight_number": flight_number.upper(), "status": "active"},
-        sort=[("created_at", -1)],
+    flights = await (
+        coll.find({"flight_number": flight_number.upper(), "status": "active"})
+        .sort("created_at", -1)
+        .limit(50)
+        .to_list(length=50)
     )
-    if not doc:
+    if not flights:
         raise HTTPException(status_code=404, detail="Flight not found")
+    doc = max(flights, key=lambda f: (len(f.get("tfms_events") or []), f.get("created_at")))
     return _prepare(doc)
 
 
