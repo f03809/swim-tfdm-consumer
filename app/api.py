@@ -55,9 +55,9 @@ async def index(request: Request, q: str | None = None) -> Any:
     )
 
     return templates.TemplateResponse(
+        request,
         "index.html",
         {
-            "request": request,
             "flights": _prepare(flights),
             "q": q or "",
         },
