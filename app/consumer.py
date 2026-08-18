@@ -75,12 +75,24 @@ class TfdmConsumer:
             logger.warning("TFDM message has no usable identifiers; skipping")
             return
 
-        existing = await coll.find_one(
-            {
-                "status": "active",
-                "$or": [{k: v} for k, v in ids.items()],
-            }
-        )
+        existing = None
+        for key in ("tfdm_id", "tfm_id", "flight_plan_identifier"):
+            if key in ids:
+                existing = await coll.find_one({key: ids[key], "status": "active"})
+                if existing:
+                    break
+        if not existing and doc.get("flight_number"):
+            dep_airport = doc.get("departure", {}).get("departurePointText")
+            arr_airport = doc.get("arrival", {}).get("destinationPointText")
+            if dep_airport and arr_airport:
+                existing = await coll.find_one(
+                    {
+                        "flight_number": doc["flight_number"],
+                        "departure.departurePointText": dep_airport,
+                        "arrival.destinationPointText": arr_airport,
+                        "status": "active",
+                    }
+                )
 
         if existing:
             if is_delete_message(doc.get("message_type")):

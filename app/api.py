@@ -59,6 +59,25 @@ async def flight_tfms(request: Request, flight_number: str) -> Any:
     )
 
 
+@router.get("/tfms/{tfms_id}", response_class=HTMLResponse)
+async def tfms_detail(request: Request, tfms_id: str) -> Any:
+    tfms_coll = await get_tfms_collection()
+    try:
+        message = await tfms_coll.find_one({"_id": ObjectId(tfms_id), "status": "active"})
+    except Exception:
+        raise HTTPException(status_code=404, detail="TFMS message not found")
+    if not message:
+        raise HTTPException(status_code=404, detail="TFMS message not found")
+    return templates.TemplateResponse(
+        request,
+        "tfms_detail.html",
+        {
+            "flight_number": message.get("flight_number") or "",
+            "message": _prepare(message),
+        },
+    )
+
+
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request, q: str | None = None) -> Any:
     coll = await get_collection()

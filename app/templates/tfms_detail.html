@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFMS Message Detail</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f7f7; }
+    h1 { margin-bottom: 1rem; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta { background: white; padding: 1rem; border: 1px solid #ddd; margin-bottom: 1rem; }
+    .meta p { margin: 0.25rem 0; }
+    pre { background: white; padding: 1rem; border: 1px solid #ddd; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>TFMS Message Detail</h1>
+  <p>
+    <a href="/flights/{{ flight_number }}/tfms">&larr; Back to TFMS list for {{ flight_number }}</a>
+    &nbsp;|&nbsp;
+    <a href="/">Back to flights</a>
+  </p>
+
+  <div class="meta">
+    <p><strong>Message Type:</strong> {{ message.msg_type or '-' }}</p>
+    <p><strong>Source Timestamp:</strong> {{ message.source_time_stamp or '-' }}</p>
+    <p><strong>TFM ID:</strong> {{ message.tfm_id or '-' }}</p>
+    <p><strong>GUFI:</strong> {{ message.gufi or '-' }}</p>
+    <p><strong>Departure:</strong> {{ message.departure_airport or '-' }}</p>
+    <p><strong>Arrival:</strong> {{ message.arrival_airport or '-' }}</p>
+  </div>
+
+  <h2>Raw Flight Data</h2>
+  <pre>{{ message.raw_flight_data | tojson(indent=2) }}</pre>
+</body>
+</html>

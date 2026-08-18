@@ -36,6 +36,15 @@ def _normalize_flight_number(value: Any) -> str | None:
     return str(value).strip().upper()
 
 
+def _normalize_airport(value: Any) -> str | None:
+    if not value:
+        return None
+    code = str(value).strip().upper()
+    if len(code) == 4 and code.startswith("K") and code[1:].isalpha():
+        return code[1:]
+    return code
+
+
 def is_delete_message(message_type: Any) -> bool:
     if not message_type:
         return False
@@ -61,6 +70,8 @@ def parse_tfdm_message(raw: dict[str, Any]) -> dict[str, Any] | None:
     major_carrier_identifier = _content(flight_id.get("majorCarrierIdentifier"))
     tfms_airline = _content(flight_id.get("nas:tfmsAirline"))
     tfdm_id_creator_airport = _get(flight_id, "nas:tfdmIdCreatorAirport")
+    if isinstance(tfdm_id_creator_airport, dict) and "locationIndicator" in tfdm_id_creator_airport:
+        tfdm_id_creator_airport["locationIndicator"] = _normalize_airport(tfdm_id_creator_airport["locationIndicator"])
 
     flight_plan = _get(flight, "nas:flightPlan", default={})
     if not isinstance(flight_plan, dict):
@@ -69,7 +80,11 @@ def parse_tfdm_message(raw: dict[str, Any]) -> dict[str, Any] | None:
     tfdm_id_of_fp = _content(flight_plan.get("nas:tfdmIdOfFlightPlanUsedForSurfaceManagement"))
 
     departure = _get(flight, "fx:departure", default={})
+    if isinstance(departure, dict) and "departurePointText" in departure:
+        departure["departurePointText"] = _normalize_airport(departure["departurePointText"])
     arrival = _get(flight, "fx:arrival", default={})
+    if isinstance(arrival, dict) and "destinationPointText" in arrival:
+        arrival["destinationPointText"] = _normalize_airport(arrival["destinationPointText"])
     aircraft = _get(flight, "fx:aircraft", default={})
     flight_status = _get(flight, "nas:flightStatus", default={})
 

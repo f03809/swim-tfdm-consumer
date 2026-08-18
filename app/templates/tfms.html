@@ -24,6 +24,7 @@
   <table>
     <thead>
       <tr>
+        <th>Detail</th>
         <th>Message Type</th>
         <th>Source Timestamp</th>
         <th>TFM ID</th>
@@ -35,6 +36,7 @@
     <tbody>
       {% for msg in tfms_messages %}
       <tr>
+        <td><a href="/tfms/{{ msg._id }}">Detail</a></td>
         <td>{{ msg.msg_type or '-' }}</td>
         <td class="muted">{{ msg.source_time_stamp or '-' }}</td>
         <td class="muted">{{ msg.tfm_id or '-' }}</td>
@@ -44,7 +46,7 @@
       </tr>
       {% else %}
       <tr>
-        <td class="empty" colspan="6">No TFMS messages found for this flight.</td>
+        <td class="empty" colspan="7">No TFMS messages found for this flight.</td>
       </tr>
       {% endfor %}
     </tbody>

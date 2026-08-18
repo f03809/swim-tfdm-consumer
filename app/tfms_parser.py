@@ -1,7 +1,13 @@
 import logging
 from typing import Any
 
-from app.parser import _content, _get, _normalize_flight_number, _parse_iso
+from app.parser import (
+    _content,
+    _get,
+    _normalize_airport,
+    _normalize_flight_number,
+    _parse_iso,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +37,8 @@ def _extract_fi_flight_data(fd: Any) -> dict[str, Any] | None:
         "gufi": gufi,
         "flight_number": _normalize_flight_number(aircraft_id),
         "igtd": igtd,
-        "departure_airport": departure_airport,
-        "arrival_airport": arrival_airport,
+        "departure_airport": _normalize_airport(departure_airport),
+        "arrival_airport": _normalize_airport(arrival_airport),
         "status": status,
         "tmi_info": tmi if isinstance(tmi, dict) else {},
         "fxa_flight_data": fxa if isinstance(fxa, dict) else {},
@@ -63,8 +69,8 @@ def _extract_fltd_message(msg: Any) -> dict[str, Any] | None:
         "gufi": gufi,
         "flight_number": _normalize_flight_number(aircraft_id or _content(msg.get("acid"))),
         "igtd": igtd,
-        "departure_airport": departure_airport or _content(msg.get("depArpt")),
-        "arrival_airport": arrival_airport or _content(msg.get("arrArpt")),
+        "departure_airport": _normalize_airport(departure_airport or _content(msg.get("depArpt"))),
+        "arrival_airport": _normalize_airport(arrival_airport or _content(msg.get("arrArpt"))),
         "status": None,
         "tmi_info": {},
         "fxa_flight_data": _get(msg, "fdm:trackInformation") or _get(msg, "trackInformation") or {},
