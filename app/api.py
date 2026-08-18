@@ -94,6 +94,8 @@ def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
         "updatedAt": doc.get("updated_at"),
         "status": doc.get("status"),
     }
+    if doc.get("tfmsSummary"):
+        clean["tfmsSummary"] = doc["tfmsSummary"]
     return {k: v for k, v in clean.items() if v is not None}
 
 

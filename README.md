@@ -26,7 +26,7 @@ This service consumes TFDM and TFMS messages from a SWIM Kafka broker, stores th
 
 ## MongoDB collections
 
-- `flights` — current TFDM flight snapshots.
+- `flights` — current TFDM flight snapshots, enriched with a `tfmsSummary` of useful TFMS data.
 - `tfms_messages` — all parsed TFMS messages with a link to a TFDM flight when one can be matched.
 - `flight_routes` — the latest known planned route per `flight_number`/`departure`/`arrival`, updated as new `FlightRoute`, `FlightSectors`, or `flightPlanAmendmentInformation` messages arrive.
 
@@ -34,11 +34,24 @@ This service consumes TFDM and TFMS messages from a SWIM Kafka broker, stores th
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/flights/{flight_number}` | Current TFDM flight snapshot |
+| GET | `/flights/{flight_number}` | Current TFDM flight snapshot, including a `tfmsSummary` of the latest useful TFMS data |
 | GET | `/flights/{flight_number}/tfms` | HTML page listing TFMS messages for the flight |
 | GET | `/flights/{flight_number}/route` | Latest planned route for the flight (JSON) |
 | GET | `/tfms/{tfms_id}` | HTML detail page with raw TFMS message JSON |
 | GET | `/` | HTML flight list |
+
+## TFMS summary in flight records
+
+When a TFMS message is linked to a TFDM flight, the `flights` record is updated with a `tfmsSummary` containing the latest useful information, such as:
+
+- `first_igtd` — the first observed initial gate/ground time of departure; retained permanently.
+- `latest_igtd`, `latest_eta`, `latest_etd` — the most recent TFMS times.
+- `latest_flight_status`, `latest_aircraft_model` — from `FlightTimes`.
+- `latest_position` — from `trackInformation`.
+- `latest_route_text` — from `flightPlanAmendmentInformation`.
+- `tfm_id`, `gufi`, `tfms_message_count`.
+
+The first `igtd` is only set once and is not overwritten by later messages.
 
 ## Airport code normalization
 
