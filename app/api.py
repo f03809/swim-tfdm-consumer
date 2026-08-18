@@ -53,20 +53,138 @@ def _normalize_tfms_airports(msg: dict[str, Any]) -> dict[str, Any]:
     return msg
 
 
+def _clean_departure(departure: Any) -> dict[str, Any]:
+    if not isinstance(departure, dict):
+        return {}
+    clean: dict[str, Any] = {}
+    airport = _normalize_airport(departure.get("departurePointText"))
+    if airport:
+        clean["airport"] = airport
+    off_block = _content(
+        _get(departure, "nas:offBlockTime", "nas:initial")
+        or _get(departure, "offBlockTime", "initial")
+    )
+    if off_block:
+        clean["offBlockTime"] = off_block
+    runway_dep = _get(departure, "nas:runwayDepartureTime") or _get(departure, "runwayDepartureTime")
+    if runway_dep:
+        est = _content(
+            _get(runway_dep, "nas:estimated", "nas:time") or _get(runway_dep, "estimated", "time")
+        )
+        if est:
+            clean["estimatedRunwayDepartureTime"] = est
+        earliest = _content(
+            _get(runway_dep, "nas:earliest", "nas:time") or _get(runway_dep, "earliest", "time")
+        )
+        if earliest:
+            clean["earliestRunwayDepartureTime"] = earliest
+    rw_actual = _get(departure, "nas:runwayActual") or _get(departure, "runwayActual")
+    rw_assigned = _get(departure, "nas:runwayAssigned") or _get(departure, "runwayAssigned")
+    rw_predicted = _get(departure, "nas:runwayPredicted") or _get(departure, "runwayPredicted")
+    runway = (
+        _content(_get(rw_actual, "runwayDesignator"))
+        or _content(_get(rw_assigned, "runwayDesignator"))
+        or _content(_get(rw_predicted, "runwayDesignator"))
+    )
+    if runway:
+        clean["runway"] = runway
+    delay = _get(departure, "nas:departureDelay") or _get(departure, "departureDelay")
+    if delay:
+        predicted = _content(_get(delay, "nas:predictedDelay") or _get(delay, "predictedDelay"))
+        current = _content(_get(delay, "nas:currentDelay") or _get(delay, "currentDelay"))
+        if predicted:
+            clean["predictedDelay"] = predicted
+        if current:
+            clean["currentDelay"] = current
+    taxi = _get(departure, "nas:departureTaxiTime") or _get(departure, "departureTaxiTime")
+    if taxi:
+        total = _content(
+            _get(taxi, "nas:totalEstimatedTaxiOutTime") or _get(taxi, "totalEstimatedTaxiOutTime")
+        )
+        if total:
+            clean["estimatedTaxiOutTime"] = total
+    spot = _get(departure, "nas:predictedDepartureSpot") or _get(departure, "predictedDepartureSpot")
+    if spot:
+        region = _content(_get(spot, "spotRegion"))
+        if region:
+            clean["predictedSpot"] = region
+    fix = _get(departure, "nas:departureFix") or _get(departure, "departureFix")
+    if fix:
+        designated = _content(_get(fix, "nas:designatedPoint") or _get(fix, "designatedPoint"))
+        if designated:
+            clean["fix"] = designated
+    return clean
+
+
+def _clean_arrival(arrival: Any) -> dict[str, Any]:
+    if not isinstance(arrival, dict):
+        return {}
+    clean: dict[str, Any] = {}
+    airport = _normalize_airport(
+        arrival.get("destinationPointText") or _get(arrival, "arrivalPointText")
+    )
+    if airport:
+        clean["airport"] = airport
+    fix = _get(arrival, "nas:arrivalFix") or _get(arrival, "arrivalFix")
+    if fix:
+        designated = _content(_get(fix, "nas:designatedPoint") or _get(fix, "designatedPoint"))
+        if designated:
+            clean["fix"] = designated
+    rat = _get(arrival, "nas:runwayArrivalTime") or _get(arrival, "runwayArrivalTime")
+    if rat:
+        est = _get(rat, "nas:estimated") or _get(rat, "estimated")
+        if est:
+            t = _content(_get(est, "nas:time") or _get(est, "time"))
+            if t:
+                clean["estimatedArrivalTime"] = t
+        actual = _get(rat, "nas:actual") or _get(rat, "actual")
+        if actual:
+            t = _content(_get(actual, "nas:time") or _get(actual, "time"))
+            if t:
+                clean["actualArrivalTime"] = t
+    rw_actual = _get(arrival, "nas:runwayActual") or _get(arrival, "runwayActual")
+    rw_assigned = _get(arrival, "nas:runwayAssigned") or _get(arrival, "runwayAssigned")
+    rw_predicted = _get(arrival, "nas:runwayPredicted") or _get(arrival, "runwayPredicted")
+    runway = (
+        _content(_get(rw_actual, "runwayDesignator"))
+        or _content(_get(rw_assigned, "runwayDesignator"))
+        or _content(_get(rw_predicted, "runwayDesignator"))
+    )
+    if runway:
+        clean["runway"] = runway
+    taxi = _get(arrival, "nas:arrivalTaxiTime") or _get(arrival, "arrivalTaxiTime")
+    if taxi:
+        total = _content(
+            _get(taxi, "nas:totalEstimatedTaxiInTime") or _get(taxi, "totalEstimatedTaxiInTime")
+        )
+        if total:
+            clean["estimatedTaxiInTime"] = total
+        elapsed = _content(
+            _get(taxi, "nas:elapsedArrivalTaxiTime") or _get(taxi, "elapsedArrivalTaxiTime")
+        )
+        if elapsed:
+            clean["elapsedTaxiInTime"] = elapsed
+    spot = _get(arrival, "nas:predictedArrivalSpot") or _get(arrival, "predictedArrivalSpot")
+    if spot:
+        region = _content(_get(spot, "spotRegion"))
+        if region:
+            clean["predictedSpot"] = region
+    actual_spot = _content(_get(arrival, "nas:actualArrivalSpot") or _get(arrival, "actualArrivalSpot"))
+    if actual_spot:
+        clean["actualSpot"] = actual_spot
+    exit_time = _content(
+        _get(arrival, "nas:movementAreaActualExitTime") or _get(arrival, "movementAreaActualExitTime")
+    )
+    if exit_time:
+        clean["movementAreaActualExitTime"] = exit_time
+    return clean
+
+
 def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
     departure = doc.get("departure") or {}
     arrival = doc.get("arrival") or {}
     status = doc.get("flight_status") or {}
     state = _get(status, "nas:tfdmFlightState") or _get(status, "tfdmFlightState") or {}
-
-    off_block = _content(
-        _get(departure, "nas:offBlockTime", "nas:initial")
-        or _get(departure, "offBlockTime", "initial")
-    )
-    arrival_time = _content(
-        _get(arrival, "nas:runwayArrivalTime", "nas:estimated", "nas:time")
-        or _get(arrival, "runwayArrivalTime", "estimated", "time")
-    )
 
     clean: dict[str, Any] = {
         "_id": doc.get("_id"),
@@ -79,10 +197,8 @@ def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
         "tfdmCreatorAirport": _normalize_airport(
             _content(_get(doc, "tfdm_id_creator_airport", "locationIndicator"))
         ),
-        "departureAirport": _normalize_airport(departure.get("departurePointText")),
-        "offBlockTime": off_block,
-        "arrivalAirport": _normalize_airport(arrival.get("destinationPointText")),
-        "arrivalTime": arrival_time,
+        "departure": _clean_departure(departure),
+        "arrival": _clean_arrival(arrival),
         "flightState": _content(state.get("value")),
         "flightStateSource": _content(state.get("source")),
         "flightStateReportedTime": _content(
