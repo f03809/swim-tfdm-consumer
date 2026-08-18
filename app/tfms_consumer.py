@@ -8,7 +8,9 @@ from typing import Any
 from aiokafka import AIOKafkaConsumer
 
 from app.config import settings
-from app.db import get_collection, get_tfms_collection
+from app.db import get_collection, get_route_collection, get_tfms_collection
+from app.parser import _normalize_airport
+from app.route_parser import extract_route
 from app.tfms_parser import parse_tfms_message
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,36 @@ class TfmsConsumer:
         doc["status"] = "active"
         result = await tfms_coll.insert_one(doc)
         await self._link_to_flight(doc, flight_coll, tfms_coll, result.inserted_id, now)
+        await self._update_route(doc, now)
+
+    async def _update_route(self, doc: dict[str, Any], now: datetime) -> None:
+        flight_number = doc.get("flight_number")
+        if not flight_number:
+            return
+        route_data = extract_route(doc.get("raw_flight_data"), doc.get("msg_type"))
+        if not route_data:
+            return
+        route_coll = await get_route_collection()
+        dep = _normalize_airport(doc.get("departure_airport")) or "-"
+        arr = _normalize_airport(doc.get("arrival_airport")) or "-"
+        route_id = f"{flight_number}_{dep}_{arr}"
+        update_doc = {
+            "flight_number": flight_number,
+            "departure_airport": dep,
+            "arrival_airport": arr,
+            "tfm_id": doc.get("tfm_id"),
+            "gufi": doc.get("gufi"),
+            "source_time_stamp": doc.get("source_time_stamp"),
+            "msg_type": doc.get("msg_type"),
+            "updated_at": now,
+            "status": "active",
+        }
+        update_doc.update(route_data)
+        await route_coll.update_one(
+            {"_id": route_id},
+            {"$set": update_doc},
+            upsert=True,
+        )
 
     async def _link_to_flight(
         self,
