@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from app.db import get_collection, get_route_collection, get_tfms_collection
-from app.parser import _normalize_airport
+from app.parser import _content, _get, _normalize_airport
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,50 @@ def _normalize_tfms_airports(msg: dict[str, Any]) -> dict[str, Any]:
     return msg
 
 
+def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
+    departure = doc.get("departure") or {}
+    arrival = doc.get("arrival") or {}
+    status = doc.get("flight_status") or {}
+    state = _get(status, "nas:tfdmFlightState") or _get(status, "tfdmFlightState") or {}
+
+    off_block = _content(
+        _get(departure, "nas:offBlockTime", "nas:initial")
+        or _get(departure, "offBlockTime", "initial")
+    )
+    arrival_time = _content(
+        _get(arrival, "nas:runwayArrivalTime", "nas:estimated", "nas:time")
+        or _get(arrival, "runwayArrivalTime", "estimated", "time")
+    )
+
+    clean: dict[str, Any] = {
+        "_id": doc.get("_id"),
+        "tfdmId": doc.get("tfdm_id"),
+        "tfmId": doc.get("tfm_id"),
+        "flightPlanIdentifier": doc.get("flight_plan_identifier"),
+        "flightNumber": doc.get("flight_number"),
+        "airline": doc.get("major_carrier_identifier") or doc.get("tfms_airline"),
+        "aircraftIdentification": doc.get("aircraft_identification"),
+        "tfdmCreatorAirport": _normalize_airport(
+            _content(_get(doc, "tfdm_id_creator_airport", "locationIndicator"))
+        ),
+        "departureAirport": _normalize_airport(departure.get("departurePointText")),
+        "offBlockTime": off_block,
+        "arrivalAirport": _normalize_airport(arrival.get("destinationPointText")),
+        "arrivalTime": arrival_time,
+        "flightState": _content(state.get("value")),
+        "flightStateSource": _content(state.get("source")),
+        "flightStateReportedTime": _content(
+            _get(state, "nas:reportedTimestamp") or _get(state, "reportedTimestamp")
+        ),
+        "tfdmFlightCreationTime": doc.get("tfdm_flight_creation_time"),
+        "messageType": doc.get("message_type"),
+        "createdAt": doc.get("created_at"),
+        "updatedAt": doc.get("updated_at"),
+        "status": doc.get("status"),
+    }
+    return {k: v for k, v in clean.items() if v is not None}
+
+
 @router.get("/flights/{flight_number}")
 async def get_flight(flight_number: str) -> dict[str, Any]:
     coll = await get_collection()
@@ -64,7 +108,7 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Flight not found")
     _normalize_flight_airports(doc)
     doc.pop("tfms_events", None)
-    return _prepare(doc)
+    return _prepare(_clean_flight_payload(doc))
 
 
 @router.get("/flights/{flight_number}/route")
