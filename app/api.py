@@ -102,12 +102,15 @@ def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
 @router.get("/flights/{flight_number}")
 async def get_flight(flight_number: str) -> dict[str, Any]:
     coll = await get_collection()
-    doc = await coll.find_one(
-        {"flight_number": flight_number.upper(), "status": "active"},
-        sort=[("created_at", -1)],
+    flights = await (
+        coll.find({"flight_number": flight_number.upper(), "status": "active"})
+        .sort("created_at", -1)
+        .limit(20)
+        .to_list(length=20)
     )
-    if not doc:
+    if not flights:
         raise HTTPException(status_code=404, detail="Flight not found")
+    doc = max(flights, key=lambda f: (bool(f.get("tfmsSummary")), f.get("updated_at")))
     _normalize_flight_airports(doc)
     doc.pop("tfms_events", None)
     return _prepare(_clean_flight_payload(doc))
