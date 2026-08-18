@@ -28,18 +28,18 @@ class TfmsConsumer:
             auto_offset_reset=settings.kafka_auto_offset_reset,
             value_deserializer=lambda v: v,
         )
-        await self._consumer.start()
         self._task = asyncio.create_task(self._consume())
-        logger.info(
-            "TFMS consumer started: topic=%s group=%s",
-            settings.kafka_tfms_topic,
-            settings.kafka_tfms_group_id,
-        )
 
     async def _consume(self) -> None:
         if self._consumer is None:
             return
         try:
+            await self._consumer.start()
+            logger.info(
+                "TFMS consumer started: topic=%s group=%s",
+                settings.kafka_tfms_topic,
+                settings.kafka_tfms_group_id,
+            )
             async for msg in self._consumer:
                 if self._stop.is_set():
                     break
@@ -55,7 +55,9 @@ class TfmsConsumer:
                 except Exception:
                     logger.exception("Failed to process TFMS message")
         finally:
-            await self._consumer.stop()
+            if self._consumer:
+                with contextlib.suppress(Exception):
+                    await self._consumer.stop()
 
     async def _store(self, doc: dict[str, Any]) -> None:
         now = datetime.now(UTC)
@@ -123,4 +125,5 @@ class TfmsConsumer:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
         if self._consumer:
-            await self._consumer.stop()
+            with contextlib.suppress(Exception):
+                await self._consumer.stop()
