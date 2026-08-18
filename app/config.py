@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     kafka_tfms_topic: str = "faa-tfms-raw"
     kafka_tfms_group_id: str = "swim-tfms-consumer"
     kafka_tbfm_topic: str = "faa-tbfm-raw"
-    kafka_tbfm_group_id: str = "swim-tbfm-consumer"
+    kafka_tbfm_group_id: str = "swim-tbfm-consumer-v2"
     kafka_auto_offset_reset: str = "latest"
 
     app_host: str = "0.0.0.0"
