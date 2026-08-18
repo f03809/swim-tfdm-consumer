@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SFDPS Message Detail</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f7f7; }
+    h1 { margin-bottom: 1rem; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta { background: white; padding: 1rem; border: 1px solid #ddd; margin-bottom: 1rem; }
+    .meta p { margin: 0.25rem 0; }
+    pre { background: white; padding: 1rem; border: 1px solid #ddd; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>SFDPS Message Detail</h1>
+  <p>
+    <a href="/flights/{{ flight_number }}/sfdps">&larr; Back to SFDPS list for {{ flight_number }}</a>
+    &nbsp;|&nbsp;
+    <a href="/">Back to flights</a>
+  </p>
+
+  <div class="meta">
+    <p><strong>GUFI:</strong> {{ message.gufi or '-' }}</p>
+    <p><strong>Flight Number:</strong> {{ message.flight_number or '-' }}</p>
+    <p><strong>Source Timestamp:</strong> {{ message.source_time_stamp or '-' }}</p>
+    <p><strong>Departure:</strong> {{ message.departure_airport or '-' }}</p>
+    <p><strong>Arrival:</strong> {{ message.arrival_airport or '-' }}</p>
+    <p><strong>FDPS Status:</strong> {{ message.fdps_flight_status or '-' }}</p>
+    <p><strong>Position:</strong> {{ message.position_lat or '-' }}, {{ message.position_lon or '-' }}</p>
+    <p><strong>Altitude:</strong> {{ message.altitude or '-' }}</p>
+    <p><strong>Speed:</strong> {{ message.speed or '-' }}</p>
+    <p><strong>Controlling Unit:</strong> {{ message.controlling_unit or '-' }} / {{ message.sector or '-' }}</p>
+  </div>
+
+  <h2>Raw JSON</h2>
+  <pre>{{ formatted_json | e }}</pre>
+</body>
+</html>

@@ -1,13 +1,15 @@
 # SWIM TFDM Consumer
 
-This service consumes TFDM, TFMS, and TBFM messages from a SWIM Kafka broker, stores them in MongoDB, and exposes a small web UI and REST API to inspect flights and their latest TFMS/TBFM data.
+This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Kafka broker, stores them in MongoDB, and exposes a small web UI and REST API to inspect flights and their latest data from all feeds.
 
 ## What it does
 
 - **TFDM consumer** (`app/consumer.py`): reads `faa-tfdm-raw`, parses flight records, and stores them in the `flights` collection.
 - **TFMS consumer** (`app/tfms_consumer.py`): reads `faa-tfms-raw`, parses per-flight TFMS messages, stores them in `tfms_messages`, and maintains the latest planned route in `flight_routes`.
 - **TBFM consumer** (`app/tbfm_consumer.py`): reads `faa-tbfm-raw`, parses per-flight TBFM XML metering messages, and stores them in `tbfm_messages`.
-- **Web UI** (`app/templates/`): lists active flights with TFMS and TBFM message counts and links to per-flight message lists and detail pages.
+- **SFDPS consumer** (`app/sfdps_consumer.py`): reads `faa-sfdps-raw`, parses SFDPS JSON flight records, and stores them in `sfdps_messages`.
+- **STDDS consumer** (`app/stdds_consumer.py`): reads `faa-stdds-raw`, parses STDDS JSON terminal tracks/flight plans, and stores them in `stdds_messages`.
+- **Web UI** (`app/templates/`): lists active flights with message counts and links to per-flight message lists and detail pages for all feeds.
 - **REST API** (`app/api.py`): exposes JSON endpoints for flight snapshots and routes.
 
 ## Environment variables
@@ -27,21 +29,27 @@ This service consumes TFDM, TFMS, and TBFM messages from a SWIM Kafka broker, st
 
 ## MongoDB collections
 
-- `flights` — current TFDM flight snapshots, enriched with `tfmsSummary` and `tbfmSummary` blocks of useful TFMS and TBFM data.
+- `flights` — current TFDM flight snapshots, enriched with `tfmsSummary`, `tbfmSummary`, `sfdpsSummary`, and `stddsSummary` blocks.
 - `tfms_messages` — all parsed TFMS messages with a link to a TFDM flight when one can be matched.
 - `tbfm_messages` — all parsed TBFM XML metering messages with a link to a TFDM flight when one can be matched.
+- `sfdps_messages` — all parsed SFDPS JSON flight messages with a link to a TFDM flight when one can be matched.
+- `stdds_messages` — all parsed STDDS JSON terminal track/flight plan records with a link to a TFDM flight when one can be matched.
 - `flight_routes` — the latest known planned route per `flight_number`/`departure`/`arrival`, updated as new `FlightRoute`, `FlightSectors`, or `flightPlanAmendmentInformation` messages arrive.
 
 ## API endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/flights/{flight_number}` | Current TFDM flight snapshot, including `tfmsSummary` and `tbfmSummary` |
+| GET | `/flights/{flight_number}` | Current TFDM flight snapshot, including `tfmsSummary`, `tbfmSummary`, `sfdpsSummary`, and `stddsSummary` |
 | GET | `/flights/{flight_number}/tfms` | HTML page listing TFMS messages for the flight |
 | GET | `/flights/{flight_number}/tbfm` | HTML page listing TBFM messages for the flight |
+| GET | `/flights/{flight_number}/sfdps` | HTML page listing SFDPS messages for the flight |
+| GET | `/flights/{flight_number}/stdds` | HTML page listing STDDS messages for the flight |
 | GET | `/flights/{flight_number}/route` | Latest planned route for the flight (JSON) |
 | GET | `/tfms/{tfms_id}` | HTML detail page with raw TFMS message JSON |
 | GET | `/tbfm/{tbfm_id}` | HTML detail page with raw TBFM message XML |
+| GET | `/sfdps/{sfdps_id}` | HTML detail page with raw SFDPS message JSON |
+| GET | `/stdds/{stdds_id}` | HTML detail page with raw STDDS message JSON |
 | GET | `/` | HTML flight list |
 
 ## Flight API fields
@@ -53,6 +61,8 @@ This service consumes TFDM, TFMS, and TBFM messages from a SWIM Kafka broker, st
 - `arrival` block: `airport`, `fix`, `estimatedArrivalTime`, `actualArrivalTime`, `runway`, `estimatedTaxiInTime`, `elapsedTaxiInTime`, `predictedSpot`, `actualSpot`, `movementAreaActualExitTime`.
 - `tfmsSummary` block: the latest useful TFMS data matched to the flight.
 - `tbfmSummary` block: the latest useful TBFM metering data matched to the flight, including meter fix, ETA at the meter fix, runway ETA, estimated departure time, runway assignment, miles-in-trail, and the originating TMA facility.
+- `sfdpsSummary` block: the latest useful SFDPS data matched to the flight, including FDPS status, departure/arrival airports, actual/estimated runway times, latest lat/lon, altitude, speed, and controlling unit/sector.
+- `stddsSummary` block: the latest useful STDDS data matched to the flight, including terminal source, track number, MRT time, latest lat/lon/altitude, beacon code, aircraft type, runway, and entry/exit fixes.
 
 ## TFDM update behavior
 
@@ -82,6 +92,31 @@ When a TBFM message is linked to a TFDM flight, the `flights` record is updated 
 - `latest_etd` — latest estimated departure time.
 - `latest_tbfm_runway` — runway designator from TBFM.
 - `latest_miles_in_trail` — any miles-in-trail / metering restriction text.
+
+## SFDPS summary in flight records
+
+When an SFDPS message is linked to a TFDM flight, the `flights` record is updated with an `sfdpsSummary` containing:
+
+- `sfdps_message_count` — count of linked SFDPS messages.
+- `latest_source_time_stamp` — latest message timestamp.
+- `latest_fdps_flight_status` — `ACTIVE`, `SCHEDULED`, etc.
+- `latest_departure_airport`, `latest_arrival_airport`.
+- `latest_actual_departure_time`, `latest_estimated_arrival_time`.
+- `latest_position_lat`, `latest_position_lon`, `latest_altitude`, `latest_speed`.
+- `latest_controlling_unit`, `latest_sector`, `latest_centre`, `latest_source`, `latest_system`.
+- `gufi`, `flight_number`.
+
+## STDDS summary in flight records
+
+When an STDDS track record is linked to a TFDM flight, the `flights` record is updated with an `stddsSummary` containing:
+
+- `stdds_message_count` — count of linked STDDS records.
+- `latest_src` — terminal source (e.g. `PCT`, `ROA`).
+- `latest_track_num`, `latest_mrt_time`, `latest_track_status`.
+- `latest_lat`, `latest_lon`, `latest_altitude`.
+- `latest_reported_beacon_code`, `latest_assigned_beacon_code`.
+- `latest_ac_type`, `latest_runway`, `latest_entry_fix`, `latest_exit_fix`.
+- `gufi`, `flight_number`, `departure_airport`, `arrival_airport`.
 
 ## Airport code normalization
 

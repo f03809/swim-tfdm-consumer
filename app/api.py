@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.db import get_collection, get_route_collection, get_tbfm_collection, get_tfms_collection
+from app.db import get_collection, get_route_collection, get_sfdps_collection, get_stdds_collection, get_tbfm_collection, get_tfms_collection
 from app.parser import _content, _get, _normalize_airport
 
 logger = logging.getLogger(__name__)
@@ -342,11 +342,113 @@ async def tbfm_detail(request: Request, tbfm_id: str) -> Any:
     )
 
 
+@router.get("/flights/{flight_number}/sfdps", response_class=HTMLResponse)
+async def flight_sfdps(request: Request, flight_number: str) -> Any:
+    sfdps_coll = await get_sfdps_collection()
+    messages = (
+        await sfdps_coll.find({"flight_number": flight_number.upper(), "status": "active"})
+        .sort("_id", -1)
+        .limit(200)
+        .to_list(length=200)
+    )
+    for msg in messages:
+        if msg.get("departure_airport"):
+            msg["departure_airport"] = _normalize_airport(msg["departure_airport"])
+        if msg.get("arrival_airport"):
+            msg["arrival_airport"] = _normalize_airport(msg["arrival_airport"])
+    return templates.TemplateResponse(
+        request,
+        "sfdps.html",
+        {
+            "flight_number": flight_number.upper(),
+            "sfdps_messages": _prepare(messages),
+        },
+    )
+
+
+@router.get("/sfdps/{sfdps_id}", response_class=HTMLResponse)
+async def sfdps_detail(request: Request, sfdps_id: str) -> Any:
+    sfdps_coll = await get_sfdps_collection()
+    try:
+        _id: Any = ObjectId(sfdps_id)
+    except Exception:
+        _id = sfdps_id
+    message = await sfdps_coll.find_one({"_id": _id, "status": "active"})
+    if not message:
+        raise HTTPException(status_code=404, detail="SFDPS message not found")
+    if message.get("departure_airport"):
+        message["departure_airport"] = _normalize_airport(message["departure_airport"])
+    if message.get("arrival_airport"):
+        message["arrival_airport"] = _normalize_airport(message["arrival_airport"])
+    formatted_json = message.get("raw_sfdps_data") or "{}"
+    return templates.TemplateResponse(
+        request,
+        "sfdps_detail.html",
+        {
+            "flight_number": message.get("flight_number") or "",
+            "message": _prepare(message),
+            "formatted_json": formatted_json,
+        },
+    )
+
+
+@router.get("/flights/{flight_number}/stdds", response_class=HTMLResponse)
+async def flight_stdds(request: Request, flight_number: str) -> Any:
+    stdds_coll = await get_stdds_collection()
+    messages = (
+        await stdds_coll.find({"flight_number": flight_number.upper(), "status": "active"})
+        .sort("_id", -1)
+        .limit(200)
+        .to_list(length=200)
+    )
+    for msg in messages:
+        if msg.get("departure_airport"):
+            msg["departure_airport"] = _normalize_airport(msg["departure_airport"])
+        if msg.get("arrival_airport"):
+            msg["arrival_airport"] = _normalize_airport(msg["arrival_airport"])
+    return templates.TemplateResponse(
+        request,
+        "stdds.html",
+        {
+            "flight_number": flight_number.upper(),
+            "stdds_messages": _prepare(messages),
+        },
+    )
+
+
+@router.get("/stdds/{stdds_id}", response_class=HTMLResponse)
+async def stdds_detail(request: Request, stdds_id: str) -> Any:
+    stdds_coll = await get_stdds_collection()
+    try:
+        _id: Any = ObjectId(stdds_id)
+    except Exception:
+        _id = stdds_id
+    message = await stdds_coll.find_one({"_id": _id, "status": "active"})
+    if not message:
+        raise HTTPException(status_code=404, detail="STDDS message not found")
+    if message.get("departure_airport"):
+        message["departure_airport"] = _normalize_airport(message["departure_airport"])
+    if message.get("arrival_airport"):
+        message["arrival_airport"] = _normalize_airport(message["arrival_airport"])
+    formatted_json = message.get("raw_stdds_data") or "{}"
+    return templates.TemplateResponse(
+        request,
+        "stdds_detail.html",
+        {
+            "flight_number": message.get("flight_number") or "",
+            "message": _prepare(message),
+            "formatted_json": formatted_json,
+        },
+    )
+
+
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request, q: str | None = None) -> Any:
     coll = await get_collection()
     tfms_coll = await get_tfms_collection()
     tbfm_coll = await get_tbfm_collection()
+    sfdps_coll = await get_sfdps_collection()
+    stdds_coll = await get_stdds_collection()
     query: dict[str, Any] = {"status": "active"}
     if q:
         query["flight_number"] = q.strip().upper()
@@ -363,9 +465,13 @@ async def index(request: Request, q: str | None = None) -> Any:
     flight_numbers = {f.get("flight_number") for f in flights if f.get("flight_number")}
     tfms_counts = {}
     tbfm_counts = {}
+    sfdps_counts = {}
+    stdds_counts = {}
     for fn in flight_numbers:
         tfms_counts[fn] = await tfms_coll.count_documents({"flight_number": fn, "status": "active"})
         tbfm_counts[fn] = await tbfm_coll.count_documents({"flight_number": fn, "status": "active"})
+        sfdps_counts[fn] = await sfdps_coll.count_documents({"flight_number": fn, "status": "active"})
+        stdds_counts[fn] = await stdds_coll.count_documents({"flight_number": fn, "status": "active"})
 
     return templates.TemplateResponse(
         request,
@@ -374,6 +480,8 @@ async def index(request: Request, q: str | None = None) -> Any:
             "flights": _prepare(flights),
             "tfms_counts": tfms_counts,
             "tbfm_counts": tbfm_counts,
+            "sfdps_counts": sfdps_counts,
+            "stdds_counts": stdds_counts,
             "q": q or "",
         },
     )

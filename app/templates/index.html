@@ -37,35 +37,45 @@
         <th>Arrival</th>
         <th>TFMS</th>
         <th>TBFM</th>
+        <th>SFDPS</th>
+        <th>STDDS</th>
       </tr>
     </thead>
     <tbody>
       {% for flight in flights %}
       <tr>
-        <td>{{ flight.flight_number or '-' }}</td>
-        <td class="muted">{{ flight.tfdm_id or '-' }}</td>
-        <td class="muted">{{ flight.tfm_id or '-' }}</td>
-        <td class="muted">{{ flight.flight_plan_identifier or '-' }}</td>
-        <td>
-          {% if flight.flight_status and flight.flight_status['nas:tfdmFlightState'] %}
-            {{ flight.flight_status['nas:tfdmFlightState'].value or '-' }}
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td class="muted">{{ flight.created_at }}</td>
+        <td>{{ flight.flightNumber or '-' }}</td>
+        <td class="muted">{{ flight.tfdmId or '-' }}</td>
+        <td class="muted">{{ flight.tfmId or '-' }}</td>
+        <td class="muted">{{ flight.flightPlanIdentifier or '-' }}</td>
+        <td>{{ flight.flightState or '-' }}</td>
+        <td class="muted">{{ flight.createdAt or '-' }}</td>
         <td>{{ flight.departure.departurePointText if flight.departure else '-' }}</td>
         <td>{{ flight.arrival.destinationPointText if flight.arrival else '-' }}</td>
         <td>
-          {% if flight.flight_number %}
-            <a href="/flights/{{ flight.flight_number }}/tfms">{{ tfms_counts.get(flight.flight_number, 0) }}</a>
+          {% if flight.flightNumber %}
+            <a href="/flights/{{ flight.flightNumber }}/tfms">{{ tfms_counts.get(flight.flightNumber, 0) }}</a>
           {% else %}
             -
           {% endif %}
         </td>
         <td>
-          {% if flight.flight_number %}
-            <a href="/flights/{{ flight.flight_number }}/tbfm">{{ tbfm_counts.get(flight.flight_number, 0) }}</a>
+          {% if flight.flightNumber %}
+            <a href="/flights/{{ flight.flightNumber }}/tbfm">{{ tbfm_counts.get(flight.flightNumber, 0) }}</a>
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if flight.flightNumber %}
+            <a href="/flights/{{ flight.flightNumber }}/sfdps">{{ sfdps_counts.get(flight.flightNumber, 0) }}</a>
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if flight.flightNumber %}
+            <a href="/flights/{{ flight.flightNumber }}/stdds">{{ stdds_counts.get(flight.flightNumber, 0) }}</a>
           {% else %}
             -
           {% endif %}
@@ -73,7 +83,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="10" style="text-align: center;">No flights found.</td>
+        <td colspan="12" style="text-align: center;">No flights found.</td>
       </tr>
       {% endfor %}
     </tbody>
