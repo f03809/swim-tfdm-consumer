@@ -44,9 +44,9 @@ def _extract_fltd_message(msg: Any) -> dict[str, Any] | None:
     if not isinstance(msg, dict):
         return None
 
-    qid = _get(msg, "fdm:trackInformation.nxcm:qualifiedAircraftId", default={})
+    qid = _get(msg, "fdm:trackInformation", "nxcm:qualifiedAircraftId", default={})
     if not isinstance(qid, dict):
-        qid = _get(msg, "trackInformation.qualifiedAircraftId", default={})
+        qid = _get(msg, "trackInformation", "qualifiedAircraftId", default={})
 
     gufi = _content(qid.get("nxce:gufi") or qid.get("gufi"))
     aircraft_id = _content(qid.get("nxce:aircraftId") or qid.get("aircraftId"))

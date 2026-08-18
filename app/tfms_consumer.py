@@ -77,23 +77,20 @@ class TfmsConsumer:
         tfms_id: Any,
         now: datetime,
     ) -> None:
-        ors = []
+        flight = None
         if doc.get("tfm_id"):
-            ors.append({"tfm_id": doc["tfm_id"]})
-        if doc.get("gufi"):
-            ors.append({"flight_plan_identifier": doc["gufi"]})
-        if doc.get("flight_number") and doc.get("departure_airport") and doc.get("arrival_airport"):
-            ors.append(
+            flight = await flight_coll.find_one({"tfm_id": doc["tfm_id"], "status": "active"})
+        if not flight and doc.get("gufi"):
+            flight = await flight_coll.find_one({"flight_plan_identifier": doc["gufi"], "status": "active"})
+        if not flight and doc.get("flight_number") and doc.get("departure_airport") and doc.get("arrival_airport"):
+            flight = await flight_coll.find_one(
                 {
                     "flight_number": doc["flight_number"],
                     "departure.departurePointText": doc["departure_airport"],
                     "arrival.destinationPointText": doc["arrival_airport"],
+                    "status": "active",
                 }
             )
-        if not ors:
-            return
-
-        flight = await flight_coll.find_one({"$or": ors, "status": "active"})
         if not flight:
             return
 
