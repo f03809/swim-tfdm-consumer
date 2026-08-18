@@ -1,5 +1,6 @@
 import json
 import logging
+import xml.dom.minidom
 from datetime import datetime
 from typing import Any
 
@@ -325,12 +326,18 @@ async def tbfm_detail(request: Request, tbfm_id: str) -> Any:
         message["departure_airport"] = _normalize_airport(message["departure_airport"])
     if message.get("arrival_airport"):
         message["arrival_airport"] = _normalize_airport(message["arrival_airport"])
+    raw_xml = message.get("raw_tbfm_data") or ""
+    try:
+        formatted_xml = xml.dom.minidom.parseString(raw_xml.encode("utf-8")).toprettyxml(indent="  ")
+    except Exception:
+        formatted_xml = raw_xml
     return templates.TemplateResponse(
         request,
         "tbfm_detail.html",
         {
             "flight_number": message.get("flight_number") or "",
             "message": _prepare(message),
+            "formatted_xml": formatted_xml,
         },
     )
 
