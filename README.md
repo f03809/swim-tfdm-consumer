@@ -40,6 +40,19 @@ This service consumes TFDM and TFMS messages from a SWIM Kafka broker, stores th
 | GET | `/tfms/{tfms_id}` | HTML detail page with raw TFMS message JSON |
 | GET | `/` | HTML flight list |
 
+## Flight API fields
+
+`/flights/{flight_number}` now returns a clean TFDM snapshot with:
+
+- Top-level identifiers and status: `tfdmId`, `tfmId`, `flightPlanIdentifier`, `flightNumber`, `airline`, `aircraftIdentification`, `flightState`, etc.
+- `departure` block: `airport`, `offBlockTime`, `runway`, `estimatedRunwayDepartureTime`, `earliestRunwayDepartureTime`, `estimatedTaxiOutTime`, `predictedDelay`, `currentDelay`, `predictedSpot`, `fix`.
+- `arrival` block: `airport`, `fix`, `estimatedArrivalTime`, `actualArrivalTime`, `runway`, `estimatedTaxiInTime`, `elapsedTaxiInTime`, `predictedSpot`, `actualSpot`, `movementAreaActualExitTime`.
+- `tfmsSummary` block: the latest useful TFMS data matched to the flight.
+
+## TFDM update behavior
+
+TFDM `FlightAdd` / `FlightUpdate` messages are merged into the existing `flights` record by `tfdm_id`, `tfm_id`, or `flight_plan_identifier` so that partial updates do not erase nested fields like `departure` / `arrival` details.
+
 ## TFMS summary in flight records
 
 When a TFMS message is linked to a TFDM flight, the `flights` record is updated with a `tfmsSummary` containing the latest useful information, such as:
