@@ -82,7 +82,7 @@ class TfmsConsumer:
             ors.append({"tfm_id": doc["tfm_id"]})
         if doc.get("gufi"):
             ors.append({"flight_plan_identifier": doc["gufi"]})
-        if not ors and doc.get("flight_number") and doc.get("departure_airport") and doc.get("arrival_airport"):
+        if doc.get("flight_number") and doc.get("departure_airport") and doc.get("arrival_airport"):
             ors.append(
                 {
                     "flight_number": doc["flight_number"],
