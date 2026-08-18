@@ -25,7 +25,7 @@ class TbfmConsumer:
             settings.kafka_tbfm_topic,
             bootstrap_servers=settings.kafka_bootstrap_servers,
             group_id=settings.kafka_tbfm_group_id,
-            auto_offset_reset=settings.kafka_auto_offset_reset,
+            auto_offset_reset="earliest",
             value_deserializer=lambda v: v,
         )
         self._task = asyncio.create_task(self._consume())
