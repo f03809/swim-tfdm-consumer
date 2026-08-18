@@ -62,8 +62,11 @@ class TbfmConsumer:
         doc["created_at"] = now
         doc["updated_at"] = now
         doc["status"] = "active"
-        result = await tbfm_coll.insert_one(doc)
-        await self._link_to_flight(doc, flight_coll, tbfm_coll, result.inserted_id, now)
+        tbfm_id = f"{doc.get('env_srce') or 'unknown'}:{doc.get('msg_id') or 'unknown'}"
+        doc["_id"] = tbfm_id
+        result = await tbfm_coll.update_one({"_id": tbfm_id}, {"$set": doc}, upsert=True)
+        is_new = result.upserted_id is not None
+        await self._link_to_flight(doc, flight_coll, tbfm_coll, tbfm_id, now, is_new)
 
     async def _link_to_flight(
         self,
@@ -72,6 +75,7 @@ class TbfmConsumer:
         tbfm_coll: Any,
         tbfm_id: Any,
         now: datetime,
+        is_new: bool,
     ) -> None:
         flight = None
         if doc.get("gufi"):
@@ -102,7 +106,7 @@ class TbfmConsumer:
             {"_id": tbfm_id},
             {"$set": {"linked_flight_id": str(flight["_id"]), "updated_at": now}},
         )
-        await self._update_flight_tbfm(doc, flight, flight_coll, now)
+        await self._update_flight_tbfm(doc, flight, flight_coll, now, is_new)
 
     async def _update_flight_tbfm(
         self,
@@ -110,20 +114,31 @@ class TbfmConsumer:
         flight: dict[str, Any],
         flight_coll: Any,
         now: datetime,
+        is_new: bool,
     ) -> None:
         summary = flight.get("tbfmSummary") or {}
         new = summary.copy()
-        new["tbfm_message_count"] = new.get("tbfm_message_count", 0) + 1
+        if is_new:
+            new["tbfm_message_count"] = new.get("tbfm_message_count", 0) + 1
         new["latest_msg_time"] = doc.get("msg_time") or doc.get("env_time")
-        new["latest_env_srce"] = doc.get("env_srce")
-        new["latest_tma_id"] = doc.get("tma_id")
-        new["latest_air_type"] = doc.get("air_type")
-        new["latest_meter_fix"] = doc.get("meter_fix")
-        new["latest_meter_fix_eta"] = doc.get("eta_mfx")
-        new["latest_runway_eta"] = doc.get("eta_rwy")
-        new["latest_etd"] = doc.get("etd")
-        new["latest_tbfm_runway"] = doc.get("rwy")
-        new["latest_miles_in_trail"] = doc.get("mis_text")
+        for key, field in [
+            ("latest_env_srce", "env_srce"),
+            ("latest_tma_id", "tma_id"),
+            ("latest_air_type", "air_type"),
+            ("latest_meter_fix", "meter_fix"),
+            ("latest_meter_fix_eta", "eta_mfx"),
+            ("latest_runway_eta", "eta_rwy"),
+            ("latest_etd", "etd"),
+            ("latest_tbfm_runway", "rwy"),
+            ("latest_miles_in_trail", "mis_text"),
+            ("latest_mrp_type", "mrp_type"),
+            ("latest_trajectory", "tra_text"),
+            ("latest_speed", "spd_text"),
+            ("latest_schedule", "sch_text"),
+            ("latest_std", "std_text"),
+        ]:
+            if doc.get(field) is not None:
+                new[key] = doc[field]
         if doc.get("gufi"):
             new["gufi"] = doc["gufi"]
         if doc.get("flight_number"):

@@ -92,9 +92,9 @@ def _clean_departure(departure: Any) -> dict[str, Any]:
     if delay:
         predicted = _content(_get(delay, "nas:predictedDelay") or _get(delay, "predictedDelay"))
         current = _content(_get(delay, "nas:currentDelay") or _get(delay, "currentDelay"))
-        if predicted:
+        if predicted and not isinstance(predicted, dict):
             clean["predictedDelay"] = predicted
-        if current:
+        if current and not isinstance(current, dict):
             clean["currentDelay"] = current
     taxi = _get(departure, "nas:departureTaxiTime") or _get(departure, "departureTaxiTime")
     if taxi:
@@ -315,9 +315,10 @@ async def flight_tbfm(request: Request, flight_number: str) -> Any:
 async def tbfm_detail(request: Request, tbfm_id: str) -> Any:
     tbfm_coll = await get_tbfm_collection()
     try:
-        message = await tbfm_coll.find_one({"_id": ObjectId(tbfm_id), "status": "active"})
+        _id: Any = ObjectId(tbfm_id)
     except Exception:
-        raise HTTPException(status_code=404, detail="TBFM message not found")
+        _id = tbfm_id
+    message = await tbfm_coll.find_one({"_id": _id, "status": "active"})
     if not message:
         raise HTTPException(status_code=404, detail="TBFM message not found")
     if message.get("departure_airport"):
