@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: consumer
-        image: ghcr.io/f03809/swim-tfdm-consumer:latest
-        imagePullPolicy: IfNotPresent
+        image: swim-tfdm-consumer:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
