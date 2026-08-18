@@ -14,6 +14,18 @@ from app.parser import is_delete_message, parse_tfdm_message
 logger = logging.getLogger(__name__)
 
 
+def _deep_merge(existing: Any, new: Any) -> Any:
+    """Recursively merge new values into an existing dict without erasing fields."""
+    if not isinstance(existing, dict) or not isinstance(new, dict):
+        return new
+    merged = existing.copy()
+    for k, v in new.items():
+        if v is None or v == {}:
+            continue
+        merged[k] = _deep_merge(merged.get(k), v)
+    return merged
+
+
 class TfdmConsumer:
     def __init__(self) -> None:
         self._stop = asyncio.Event()
@@ -103,7 +115,22 @@ class TfdmConsumer:
             else:
                 # Merge partial updates so missing fields in the message do not
                 # erase fields already stored for this flight.
-                updates = {k: v for k, v in doc.items() if v is not None and v != {}}
+                merge_fields = {
+                    "departure",
+                    "arrival",
+                    "flight_status",
+                    "flight_identification",
+                    "flight_plan",
+                    "aircraft",
+                }
+                updates = {}
+                for k, v in doc.items():
+                    if v is None or v == {}:
+                        continue
+                    if k in merge_fields and isinstance(v, dict):
+                        updates[k] = _deep_merge(existing.get(k), v)
+                    else:
+                        updates[k] = v
                 updates["updated_at"] = now
                 updates["status"] = "active"
                 await coll.update_one({"_id": existing["_id"]}, {"$set": updates})
