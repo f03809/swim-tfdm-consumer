@@ -200,6 +200,7 @@ class TfmsConsumer:
                         ),
                         "altitude": _content(_get(pos, "nxce:altitude") or _get(pos, "altitude")),
                         "speed": _content(_get(pos, "nxce:speed") or _get(pos, "speed")),
+                        "time": doc.get("source_time_stamp"),
                     }
 
         if msg_type == "flightPlanAmendmentInformation":

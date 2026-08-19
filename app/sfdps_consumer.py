@@ -130,6 +130,7 @@ class SfdpsConsumer:
             ("latest_estimated_arrival_time", "estimated_arrival_time"),
             ("latest_position_lat", "position_lat"),
             ("latest_position_lon", "position_lon"),
+            ("latest_position_time", "position_time"),
             ("latest_altitude", "altitude"),
             ("latest_speed", "speed"),
             ("latest_controlling_unit", "controlling_unit"),

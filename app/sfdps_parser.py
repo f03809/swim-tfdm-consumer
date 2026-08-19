@@ -92,6 +92,7 @@ def parse_sfdps_message(raw: bytes) -> list[dict[str, Any]]:
             "sector": _content(controlling_unit.get("sectorIdentifier")),
             "position_lat": lat,
             "position_lon": lon,
+            "position_time": _parse_iso(position.get("positionTime") or position.get("targetPositionTime")),
             "altitude": _content(_get(position, "altitude")),
             "speed": _content(_get(position, "actualSpeed", "surveillance")),
             "raw_sfdps_data": json.dumps(original_payload, indent=2),
