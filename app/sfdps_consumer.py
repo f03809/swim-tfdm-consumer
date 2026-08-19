@@ -25,7 +25,7 @@ class SfdpsConsumer:
             settings.kafka_sfdps_topic,
             bootstrap_servers=settings.kafka_bootstrap_servers,
             group_id=settings.kafka_sfdps_group_id,
-            auto_offset_reset="earliest",
+            auto_offset_reset=settings.kafka_auto_offset_reset,
             value_deserializer=lambda v: v,
         )
         self._task = asyncio.create_task(self._consume())

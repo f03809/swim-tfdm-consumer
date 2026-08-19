@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     kafka_tbfm_topic: str = "faa-tbfm-raw"
     kafka_tbfm_group_id: str = "swim-tbfm-consumer-v3"
     kafka_sfdps_topic: str = "faa-sfdps-raw"
-    kafka_sfdps_group_id: str = "swim-sfdps-consumer-v2"
+    kafka_sfdps_group_id: str = "swim-sfdps-consumer-v3"
     kafka_stdds_topic: str = "faa-stdds-raw"
     kafka_stdds_group_id: str = "swim-stdds-consumer-v2"
     kafka_auto_offset_reset: str = "latest"
