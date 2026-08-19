@@ -191,7 +191,7 @@ def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
         "_id": doc.get("_id"),
         "tfdmId": doc.get("tfdm_id"),
         "tfmId": doc.get("tfm_id"),
-        "flightPlanIdentifier": doc.get("flight_plan_identifier"),
+        "flightPlanIdentifier": doc.get("flight_plan_identifier") or doc.get("tfdm_id"),
         "flightNumber": doc.get("flight_number"),
         "airline": doc.get("major_carrier_identifier") or doc.get("tfms_airline"),
         "aircraftIdentification": doc.get("aircraft_identification"),
