@@ -50,8 +50,8 @@
         <td class="muted">{{ flight.flightPlanIdentifier or '-' }}</td>
         <td>{{ flight.flightState or '-' }}</td>
         <td class="muted">{{ flight.createdAt or '-' }}</td>
-        <td>{{ flight.departure.departurePointText if flight.departure else '-' }}</td>
-        <td>{{ flight.arrival.destinationPointText if flight.arrival else '-' }}</td>
+        <td>{{ flight.departure.airport if flight.departure else '-' }}</td>
+        <td>{{ flight.arrival.airport if flight.arrival else '-' }}</td>
         <td>
           {% if flight.flightNumber %}
             <a href="/flights/{{ flight.flightNumber }}/tfms">{{ tfms_counts.get(flight.flightNumber, 0) }}</a>

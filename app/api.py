@@ -449,39 +449,38 @@ async def stdds_detail(request: Request, stdds_id: str) -> Any:
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request, q: str | None = None) -> Any:
     coll = await get_collection()
-    tfms_coll = await get_tfms_collection()
-    tbfm_coll = await get_tbfm_collection()
-    sfdps_coll = await get_sfdps_collection()
-    stdds_coll = await get_stdds_collection()
     query: dict[str, Any] = {"status": "active"}
     if q:
         query["flight_number"] = q.strip().upper()
 
-    flights = (
+    flights_raw = (
         await coll.find(query)
         .sort("created_at", -1)
         .limit(50)
         .to_list(length=50)
     )
-    for flight in flights:
-        _normalize_flight_airports(flight)
 
-    flight_numbers = {f.get("flight_number") for f in flights if f.get("flight_number")}
-    tfms_counts = {}
-    tbfm_counts = {}
-    sfdps_counts = {}
-    stdds_counts = {}
-    for fn in flight_numbers:
-        tfms_counts[fn] = await tfms_coll.count_documents({"flight_number": fn, "status": "active"})
-        tbfm_counts[fn] = await tbfm_coll.count_documents({"flight_number": fn, "status": "active"})
-        sfdps_counts[fn] = await sfdps_coll.count_documents({"flight_number": fn, "status": "active"})
-        stdds_counts[fn] = await stdds_coll.count_documents({"flight_number": fn, "status": "active"})
+    flights: list[dict[str, Any]] = []
+    tfms_counts: dict[str, int] = {}
+    tbfm_counts: dict[str, int] = {}
+    sfdps_counts: dict[str, int] = {}
+    stdds_counts: dict[str, int] = {}
+    for doc in flights_raw:
+        _normalize_flight_airports(doc)
+        clean = _clean_flight_payload(doc)
+        fn = clean.get("flightNumber")
+        if fn:
+            tfms_counts[fn] = (doc.get("tfmsSummary") or {}).get("tfms_message_count", 0)
+            tbfm_counts[fn] = (doc.get("tbfmSummary") or {}).get("tbfm_message_count", 0)
+            sfdps_counts[fn] = (doc.get("sfdpsSummary") or {}).get("sfdps_message_count", 0)
+            stdds_counts[fn] = (doc.get("stddsSummary") or {}).get("stdds_message_count", 0)
+        flights.append(_prepare(clean))
 
     return templates.TemplateResponse(
         request,
         "index.html",
         {
-            "flights": _prepare(flights),
+            "flights": flights,
             "tfms_counts": tfms_counts,
             "tbfm_counts": tbfm_counts,
             "sfdps_counts": sfdps_counts,
