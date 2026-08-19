@@ -465,7 +465,7 @@ async def index(request: Request, q: str | None = None) -> Any:
 
     flights_raw = (
         await coll.find(query)
-        .sort("created_at", -1)
+        .sort("updated_at", -1)
         .limit(50)
         .to_list(length=50)
     )
