@@ -69,10 +69,11 @@ class TfmsConsumer:
         doc["updated_at"] = now
         doc["status"] = "active"
         result = await tfms_coll.insert_one(doc)
-        await self._link_to_flight(doc, flight_coll, tfms_coll, result.inserted_id, now)
-        await self._update_route(doc, now)
+        flight = await self._link_to_flight(doc, flight_coll, tfms_coll, result.inserted_id, now)
+        linked_flight_id = str(flight["_id"]) if flight else None
+        await self._update_route(doc, linked_flight_id, now)
 
-    async def _update_route(self, doc: dict[str, Any], now: datetime) -> None:
+    async def _update_route(self, doc: dict[str, Any], linked_flight_id: str | None, now: datetime) -> None:
         flight_number = doc.get("flight_number")
         if not flight_number:
             return
@@ -82,8 +83,10 @@ class TfmsConsumer:
         route_coll = await get_route_collection()
         dep = _normalize_airport(doc.get("departure_airport")) or "-"
         arr = _normalize_airport(doc.get("arrival_airport")) or "-"
-        route_id = f"{flight_number}_{dep}_{arr}"
+        route_id = linked_flight_id or f"{flight_number}_{dep}_{arr}"
         update_doc = {
+            "_id": route_id,
+            "linked_flight_id": linked_flight_id,
             "flight_number": flight_number,
             "departure_airport": dep,
             "arrival_airport": arr,
@@ -108,7 +111,7 @@ class TfmsConsumer:
         tfms_coll: Any,
         tfms_id: Any,
         now: datetime,
-    ) -> None:
+    ) -> dict[str, Any] | None:
         flight = None
         if doc.get("tfm_id"):
             flight = await flight_coll.find_one({"tfm_id": doc["tfm_id"], "status": "active"})
@@ -124,13 +127,14 @@ class TfmsConsumer:
                 }
             )
         if not flight:
-            return
+            return None
 
         await tfms_coll.update_one(
             {"_id": tfms_id},
             {"$set": {"linked_flight_id": str(flight["_id"]), "updated_at": now}},
         )
         await self._update_flight_tfms(doc, flight, flight_coll, now)
+        return flight
 
     async def _update_flight_tfms(
         self,

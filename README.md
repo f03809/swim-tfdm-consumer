@@ -34,7 +34,7 @@ This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Ka
 - `tbfm_messages` — all parsed TBFM XML metering messages with a link to a TFDM flight when one can be matched.
 - `sfdps_messages` — all parsed SFDPS JSON flight messages with a link to a TFDM flight when one can be matched.
 - `stdds_messages` — all parsed STDDS JSON terminal track/flight plan records with a link to a TFDM flight when one can be matched.
-- `flight_routes` — the latest known planned route per `flight_number`/`departure`/`arrival`, updated as new `FlightRoute`, `FlightSectors`, or `flightPlanAmendmentInformation` messages arrive.
+- `flight_routes` — the latest known planned route per flight. When a TFMS route message can be matched to a `flights` doc, the `flight_routes` `_id` is the linked `flights._id`; otherwise it falls back to `flight_number`/`departure`/`arrival`.
 
 ## API endpoints
 

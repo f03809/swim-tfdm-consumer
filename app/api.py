@@ -241,7 +241,17 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
 
 @router.get("/flights/{flight_number}/route")
 async def get_flight_route(flight_number: str) -> dict[str, Any]:
+    coll = await get_collection()
     route_coll = await get_route_collection()
+    flight = await coll.find_one(
+        {"flight_number": flight_number.upper(), "status": "active"},
+        sort=[("created_at", -1)],
+    )
+    if flight:
+        doc = await route_coll.find_one({"_id": str(flight["_id"]), "status": "active"})
+        if doc:
+            return _prepare(doc)
+
     doc = await route_coll.find_one(
         {"flight_number": flight_number.upper(), "status": "active"},
         sort=[("updated_at", -1)],
