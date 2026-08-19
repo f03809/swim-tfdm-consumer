@@ -76,8 +76,8 @@ def parse_tfdm_message(raw: dict[str, Any]) -> dict[str, Any] | None:
     flight_plan = _get(flight, "nas:flightPlan", default={})
     if not isinstance(flight_plan, dict):
         flight_plan = {}
-    flight_plan_identifier = _content(flight_plan.get("identifier"))
     tfdm_id_of_fp = _content(flight_plan.get("nas:tfdmIdOfFlightPlanUsedForSurfaceManagement"))
+    flight_plan_identifier = _content(flight_plan.get("identifier")) or tfdm_id_of_fp
 
     departure = _get(flight, "fx:departure", default={})
     if isinstance(departure, dict) and "departurePointText" in departure:
