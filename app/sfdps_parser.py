@@ -5,6 +5,19 @@ from typing import Any
 from app.parser import _content, _get, _normalize_airport
 
 
+def _denormalize_sfdps(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        result: dict[str, Any] = {}
+        for k, v in obj.items():
+            if k.startswith("-"):
+                result[k[1:]] = _denormalize_sfdps(v)
+            result[k] = _denormalize_sfdps(v)
+        return result
+    if isinstance(obj, list):
+        return [_denormalize_sfdps(item) for item in obj]
+    return obj
+
+
 def _parse_iso(value: Any) -> datetime | None:
     if not value:
         return None
@@ -28,7 +41,8 @@ def _split_pos(pos: str | None) -> tuple[float | None, float | None]:
 
 def parse_sfdps_message(raw: bytes) -> list[dict[str, Any]]:
     try:
-        payload = json.loads(raw.decode("utf-8", errors="replace"))
+        original_payload = json.loads(raw.decode("utf-8", errors="replace"))
+        payload = _denormalize_sfdps(original_payload)
     except Exception:
         return []
 
@@ -80,7 +94,7 @@ def parse_sfdps_message(raw: bytes) -> list[dict[str, Any]]:
             "position_lon": lon,
             "altitude": _content(_get(position, "altitude")),
             "speed": _content(_get(position, "actualSpeed", "surveillance")),
-            "raw_sfdps_data": json.dumps(payload, indent=2),
+            "raw_sfdps_data": json.dumps(original_payload, indent=2),
         }
 
         dep_time = _get(departure, "runwayPositionAndTime", "runwayTime", "actual", "time")
