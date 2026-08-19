@@ -12,6 +12,18 @@ _stdds_collection: AsyncIOMotorCollection | None = None
 _route_collection: AsyncIOMotorCollection | None = None
 
 
+async def ping_mongodb() -> bool:
+    global _client, _db
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _db = _client[settings.mongodb_db]
+    try:
+        await _client.admin.command("ping")
+        return True
+    except Exception:
+        return False
+
+
 async def get_collection() -> AsyncIOMotorCollection:
     global _client, _db, _collection
     if _client is None:

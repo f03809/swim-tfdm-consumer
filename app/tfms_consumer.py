@@ -6,9 +6,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from aiokafka import AIOKafkaConsumer
+from aiokafka.structs import TopicPartition
 
 from app.config import settings
-from app.db import get_collection, get_route_collection, get_tfms_collection
+from app.db import get_collection, get_route_collection, get_tfms_collection, ping_mongodb
 from app.parser import _content, _get, _normalize_airport, _parse_iso
 from app.route_parser import extract_route
 from app.tfms_parser import parse_tfms_message
@@ -22,12 +23,28 @@ class TfmsConsumer:
         self._task: asyncio.Task[Any] | None = None
         self._consumer: AIOKafkaConsumer | None = None
 
+    async def _ensure_db_healthy(self) -> None:
+        if self._consumer is None:
+            return
+        while not self._stop.is_set():
+            if await ping_mongodb():
+                break
+            partitions = self._consumer.assignment()
+            if partitions:
+                self._consumer.pause(*partitions)
+            logger.warning("MongoDB ping failed; pausing %s partitions", len(partitions))
+            await asyncio.sleep(1)
+        partitions = self._consumer.assignment()
+        if partitions:
+            self._consumer.resume(*partitions)
+
     async def start(self) -> None:
         self._consumer = AIOKafkaConsumer(
             settings.kafka_tfms_topic,
             bootstrap_servers=settings.kafka_bootstrap_servers,
             group_id=settings.kafka_tfms_group_id,
             auto_offset_reset=settings.kafka_auto_offset_reset,
+            enable_auto_commit=False,
             value_deserializer=lambda v: v,
         )
         self._task = asyncio.create_task(self._consume())
@@ -45,15 +62,20 @@ class TfmsConsumer:
             async for msg in self._consumer:
                 if self._stop.is_set():
                     break
+                await self._ensure_db_healthy()
+                if self._stop.is_set():
+                    break
                 try:
                     payload = json.loads(
                         msg.value.decode("utf-8", errors="replace")
                     )
                     docs = parse_tfms_message(payload)
-                    if not docs:
-                        continue
-                    for doc in docs:
-                        await self._store(doc)
+                    if docs:
+                        for doc in docs:
+                            await self._store(doc)
+                    await self._consumer.commit({
+                        TopicPartition(msg.topic, msg.partition): msg.offset + 1
+                    })
                 except Exception:
                     logger.exception("Failed to process TFMS message")
         finally:

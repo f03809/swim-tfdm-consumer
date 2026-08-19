@@ -6,9 +6,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from aiokafka import AIOKafkaConsumer
+from aiokafka.structs import TopicPartition
 
 from app.config import settings
-from app.db import get_collection
+from app.db import get_collection, ping_mongodb
 from app.parser import is_delete_message, parse_tfdm_message
 
 logger = logging.getLogger(__name__)
@@ -32,12 +33,28 @@ class TfdmConsumer:
         self._task: asyncio.Task[Any] | None = None
         self._consumer: AIOKafkaConsumer | None = None
 
+    async def _ensure_db_healthy(self) -> None:
+        if self._consumer is None:
+            return
+        while not self._stop.is_set():
+            if await ping_mongodb():
+                break
+            partitions = self._consumer.assignment()
+            if partitions:
+                self._consumer.pause(*partitions)
+            logger.warning("MongoDB ping failed; pausing %s partitions", len(partitions))
+            await asyncio.sleep(1)
+        partitions = self._consumer.assignment()
+        if partitions:
+            self._consumer.resume(*partitions)
+
     async def start(self) -> None:
         self._consumer = AIOKafkaConsumer(
             settings.kafka_topic,
             bootstrap_servers=settings.kafka_bootstrap_servers,
             group_id=settings.kafka_group_id,
             auto_offset_reset=settings.kafka_auto_offset_reset,
+            enable_auto_commit=False,
             value_deserializer=lambda v: v,
         )
         self._task = asyncio.create_task(self._consume())
@@ -55,14 +72,19 @@ class TfdmConsumer:
             async for msg in self._consumer:
                 if self._stop.is_set():
                     break
+                await self._ensure_db_healthy()
+                if self._stop.is_set():
+                    break
                 try:
                     payload = json.loads(
                         msg.value.decode("utf-8", errors="replace")
                     )
                     doc = parse_tfdm_message(payload)
-                    if doc is None:
-                        continue
-                    await self._upsert(doc)
+                    if doc is not None:
+                        await self._upsert(doc)
+                    await self._consumer.commit({
+                        TopicPartition(msg.topic, msg.partition): msg.offset + 1
+                    })
                 except Exception:
                     logger.exception("Failed to process TFDM message")
         finally:
