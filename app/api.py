@@ -215,6 +215,10 @@ def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
         clean["tfmsSummary"] = doc["tfmsSummary"]
     if doc.get("tbfmSummary"):
         clean["tbfmSummary"] = doc["tbfmSummary"]
+    if doc.get("sfdpsSummary"):
+        clean["sfdpsSummary"] = doc["sfdpsSummary"]
+    if doc.get("stddsSummary"):
+        clean["stddsSummary"] = doc["stddsSummary"]
     return {k: v for k, v in clean.items() if v is not None}
 
 
@@ -229,7 +233,7 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
     )
     if not flights:
         raise HTTPException(status_code=404, detail="Flight not found")
-    doc = max(flights, key=lambda f: (bool(f.get("tfmsSummary")), bool(f.get("tbfmSummary")), f.get("updated_at")))
+    doc = max(flights, key=lambda f: (bool(f.get("tfmsSummary")), bool(f.get("tbfmSummary")), bool(f.get("sfdpsSummary")), bool(f.get("stddsSummary")), f.get("updated_at")))
     _normalize_flight_airports(doc)
     doc.pop("tfms_events", None)
     return _prepare(_clean_flight_payload(doc))
