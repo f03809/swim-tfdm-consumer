@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import Depends, FastAPI
+from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.admin import router as admin_router
@@ -76,6 +77,10 @@ else:
         max_age=settings.admin_session_max_age,
         session_cookie="admin_session",
     )
+
+    @app.get("/")
+    async def root() -> RedirectResponse:
+        return RedirectResponse(url="/admin", status_code=302)
 
     app.include_router(auth_router)
     app.include_router(subscriptions_router)
