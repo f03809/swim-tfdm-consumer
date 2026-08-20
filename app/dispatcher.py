@@ -111,10 +111,34 @@ async def _coalescer() -> None:
                 logger.exception("Failed to dispatch flight %s", fn)
 
 
+async def _change_stream_available() -> bool:
+    coll = await get_collection()
+    client = coll.database.client
+    try:
+        status = await client.admin.command("replSetGetStatus")
+    except Exception:
+        return False
+
+    # Change streams require a majority of data-bearing nodes to be healthy.
+    # With one primary + one secondary + arbiter we need the secondary to be
+    # fully in SECONDARY state. STARTUP2/RECOVERING etc. do not count.
+    for member in status.get("members", []):
+        state = member.get("stateStr")
+        if state == "SECONDARY":
+            return True
+    return False
+
+
 async def _watch_or_poll() -> None:
+    if not await _change_stream_available():
+        logger.warning("MongoDB secondary not ready; using polling until SECONDARY")
+        await _poll_flights()
+        return
+
     coll = await get_collection()
     try:
         stream = coll.watch(full_document="updateLookup")
+        logger.info("Using MongoDB change streams for flight updates")
         try:
             async for change in stream:
                 if _stop.is_set():
