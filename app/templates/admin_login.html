@@ -1,16 +1,25 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Admin Login{% endblock %}
+{% block admin_title %}Admin Login{% endblock %}
 
-{% block content %}
-<h1>Admin login</h1>
-{% if error %}
-  <div class="error">{{ error }}</div>
-{% endif %}
-<form method="post">
-  <label for="password">Password</label>
-  <input type="password" id="password" name="password" required>
+{% block admin_content %}
+  <h1 class="page-title">Admin login</h1>
+  <p class="page-subtitle">Enter your admin password to continue.</p>
 
-  <button type="submit">Log in</button>
-</form>
+  {% if error %}
+    <div class="admin-alert admin-alert-error">
+      <i data-lucide="alert-circle" style="width: 1rem; height: 1rem;"></i>
+      {{ error }}
+    </div>
+  {% endif %}
+
+  <form method="post" class="admin-form">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required class="admin-input">
+
+    <button type="submit" class="btn">
+      <i data-lucide="log-in" style="width: 1rem; height: 1rem;"></i>
+      Log in
+    </button>
+  </form>
 {% endblock %}

@@ -1,19 +1,28 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Setup Admin{% endblock %}
+{% block admin_title %}Setup Admin{% endblock %}
 
-{% block content %}
-<h1>Set up admin password</h1>
-{% if error %}
-  <div class="error">{{ error }}</div>
-{% endif %}
-<form method="post">
-  <label for="password">Password</label>
-  <input type="password" id="password" name="password" required minlength="8">
+{% block admin_content %}
+  <h1 class="page-title">Set up admin password</h1>
+  <p class="page-subtitle">Choose a strong password to secure the admin portal.</p>
 
-  <label for="confirm_password">Confirm password</label>
-  <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+  {% if error %}
+    <div class="admin-alert admin-alert-error">
+      <i data-lucide="alert-circle" style="width: 1rem; height: 1rem;"></i>
+      {{ error }}
+    </div>
+  {% endif %}
 
-  <button type="submit">Set password</button>
-</form>
+  <form method="post" class="admin-form">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required minlength="8" class="admin-input">
+
+    <label for="confirm_password">Confirm password</label>
+    <input type="password" id="confirm_password" name="confirm_password" required minlength="8" class="admin-input">
+
+    <button type="submit" class="btn">
+      <i data-lucide="save" style="width: 1rem; height: 1rem;"></i>
+      Set password
+    </button>
+  </form>
 {% endblock %}

@@ -1,20 +1,21 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block admin_title %}Dashboard{% endblock %}
 
-{% block nav %}
-<nav>
-  <a href="/admin/dashboard">Dashboard</a>
-  <a href="/admin/clients">Clients</a>
-  <a href="/admin/subscriptions">Subscriptions</a>
-  <a href="/admin/logout">Log out</a>
-</nav>
-{% endblock %}
+{% block admin_content %}
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-subtitle">Overview of the consumer.</p>
 
-{% block content %}
-<h1>Dashboard</h1>
-<ul>
-  <li>Active clients: {{ client_count }}</li>
-  <li>Active subscriptions: {{ subscription_count }}</li>
-</ul>
+  <div class="admin-stats">
+    <div class="admin-stat card">
+      <i data-lucide="users" class="admin-stat-icon"></i>
+      <div class="admin-stat-value">{{ client_count }}</div>
+      <div class="admin-stat-label">Active clients</div>
+    </div>
+    <div class="admin-stat card">
+      <i data-lucide="bell-ring" class="admin-stat-icon"></i>
+      <div class="admin-stat-value">{{ subscription_count }}</div>
+      <div class="admin-stat-label">Active subscriptions</div>
+    </div>
+  </div>
 {% endblock %}

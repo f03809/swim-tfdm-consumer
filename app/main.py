@@ -80,6 +80,8 @@ else:
 
     @app.middleware("http")
     async def admin_check_middleware(request: Request, call_next: Any) -> Any:
+        from fastapi.responses import RedirectResponse
+
         skip_prefixes = ("/static", "/api/v1", "/auth")
         if any(request.url.path.startswith(p) for p in skip_prefixes):
             request.state.admin_exists = True
@@ -89,6 +91,11 @@ else:
                 request.state.admin_exists = await coll.find_one({"username": "admin"}) is not None
             except Exception:
                 request.state.admin_exists = True
+
+            if not request.state.admin_exists and not request.url.path.startswith("/admin/setup"):
+                if request.method in ("GET", "HEAD"):
+                    return RedirectResponse(url="/admin/setup", status_code=302)
+
         return await call_next(request)
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")

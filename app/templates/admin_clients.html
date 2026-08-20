@@ -1,57 +1,69 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Clients{% endblock %}
+{% block admin_title %}Clients{% endblock %}
 
-{% block nav %}
-<nav>
-  <a href="/admin/dashboard">Dashboard</a>
-  <a href="/admin/clients">Clients</a>
-  <a href="/admin/subscriptions">Subscriptions</a>
-  <a href="/admin/logout">Log out</a>
-</nav>
-{% endblock %}
+{% block admin_content %}
+  <h1 class="page-title">API clients</h1>
+  <p class="page-subtitle">Create and manage API clients that can read flight data and manage subscriptions.</p>
 
-{% block content %}
-<h1>API clients</h1>
+  {% if new_secret %}
+    <div class="admin-alert admin-alert-success">
+      <i data-lucide="check-circle" style="width: 1rem; height: 1rem;"></i>
+      <div>
+        <strong>New client created:</strong> <span class="mono">{{ new_client_id }}</span><br>
+        <strong>Secret (shown once):</strong> <span class="mono">{{ new_secret }}</span>
+      </div>
+    </div>
+  {% endif %}
 
-{% if new_secret %}
-<div class="success">
-  <strong>New client created:</strong> <span class="mono">{{ new_client_id }}</span><br>
-  <strong>Secret (shown once):</strong> <span class="mono">{{ new_secret }}</span>
-</div>
-{% endif %}
+  <form method="post" class="admin-form admin-form-inline">
+    <label for="name">Client name</label>
+    <div class="admin-form-row">
+      <input type="text" id="name" name="name" required class="admin-input">
+      <button type="submit" class="btn">
+        <i data-lucide="plus" style="width: 1rem; height: 1rem;"></i>
+        Create client
+      </button>
+    </div>
+  </form>
 
-<form method="post">
-  <label for="name">Client name</label>
-  <input type="text" id="name" name="name" required>
-  <button type="submit">Create client</button>
-</form>
-
-{% if clients %}
-<table>
-  <thead>
-    <tr><th>Client ID</th><th>Name</th><th>Status</th><th>Created</th><th>Actions</th></tr>
-  </thead>
-  <tbody>
-    {% for client in clients %}
-    <tr>
-      <td class="mono">{{ client.client_id }}</td>
-      <td>{{ client.name }}</td>
-      <td>{{ client.status }}</td>
-      <td>{{ client.createdAt }}</td>
-      <td>
-        {% if client.status == 'active' %}
-        <form method="post" action="/admin/clients/{{ client.client_id }}/reissue" class="inline">
-          <button type="submit">Reissue</button>
-        </form>
-        <form method="post" action="/admin/clients/{{ client.client_id }}/revoke" class="inline">
-          <button type="submit" class="danger">Revoke</button>
-        </form>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
+  {% if clients %}
+    <div class="card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Client ID</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for client in clients %}
+          <tr>
+            <td class="mono">{{ client.client_id }}</td>
+            <td>{{ client.name }}</td>
+            <td>
+              <span class="badge badge-count">{{ client.status }}</span>
+            </td>
+            <td class="muted">{{ client.createdAt }}</td>
+            <td>
+              {% if client.status == 'active' %}
+                <form method="post" action="/admin/clients/{{ client.client_id }}/reissue" class="inline-form" onsubmit="return confirm('Reissue secret for {{ client.client_id }}?')">
+                  <button type="submit" class="btn btn-sm">Reissue</button>
+                </form>
+                <form method="post" action="/admin/clients/{{ client.client_id }}/revoke" class="inline-form" onsubmit="return confirm('Revoke {{ client.client_id }}?')">
+                  <button type="submit" class="btn btn-sm btn-danger">Revoke</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">No clients yet.</p>
+  {% endif %}
 {% endblock %}
