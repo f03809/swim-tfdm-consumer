@@ -170,15 +170,39 @@
         }
       });
 
+      async function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (!ok) throw new Error('Copy failed');
+      }
+
+      function showCopied(btn) {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:0.75rem;height:0.75rem"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        setTimeout(function () { btn.innerHTML = original; if (typeof lucide !== 'undefined') lucide.createIcons(); }, 1500);
+      }
+
       document.querySelectorAll('.copy-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
+        btn.addEventListener('click', async function (e) {
+          e.stopPropagation();
           const targetId = btn.dataset.copyTarget;
           const text = targetId ? document.getElementById(targetId).textContent : btn.closest('.copy-cell').dataset.value;
-          navigator.clipboard.writeText(text.trim()).then(function () {
-            const original = btn.innerHTML;
-            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:0.75rem;height:0.75rem"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-            setTimeout(function () { btn.innerHTML = original; if (typeof lucide !== 'undefined') lucide.createIcons(); }, 1500);
-          });
+          try {
+            await copyToClipboard(text.trim());
+            showCopied(btn);
+          } catch (err) {
+            console.error('Copy failed:', err);
+            alert('Could not copy automatically. Please copy the value manually.');
+          }
         });
       });
     })();
