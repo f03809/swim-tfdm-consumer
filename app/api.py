@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -222,8 +222,20 @@ def _clean_flight_payload(doc: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in clean.items() if v is not None}
 
 
-@router.get("/flights/{flight_number}")
-async def get_flight(flight_number: str) -> dict[str, Any]:
+def _pick_best_flight(flights: list[dict[str, Any]]) -> dict[str, Any]:
+    return max(
+        flights,
+        key=lambda f: (
+            bool(f.get("tfmsSummary")),
+            bool(f.get("tbfmSummary")),
+            bool(f.get("sfdpsSummary")),
+            bool(f.get("stddsSummary")),
+            f.get("updated_at"),
+        ),
+    )
+
+
+async def _resolve_flight(flight_number: str) -> dict[str, Any] | None:
     coll = await get_collection()
     flights = await (
         coll.find({"flight_number": flight_number.upper(), "status": "active"})
@@ -232,11 +244,62 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
         .to_list(length=20)
     )
     if not flights:
-        raise HTTPException(status_code=404, detail="Flight not found")
-    doc = max(flights, key=lambda f: (bool(f.get("tfmsSummary")), bool(f.get("tbfmSummary")), bool(f.get("sfdpsSummary")), bool(f.get("stddsSummary")), f.get("updated_at")))
+        return None
+    doc = _pick_best_flight(flights)
     _normalize_flight_airports(doc)
     doc.pop("tfms_events", None)
     return _prepare(_clean_flight_payload(doc))
+
+
+@router.get("/flights/{flight_number}")
+async def get_flight(flight_number: str) -> dict[str, Any]:
+    result = await _resolve_flight(flight_number)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Flight not found")
+    return result
+
+
+@router.post("/flights/batch")
+async def get_flights_batch(flight_numbers: list[str] = Body(..., min_length=1)) -> dict[str, Any]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for fn in flight_numbers:
+        if not isinstance(fn, str):
+            continue
+        cleaned = fn.strip().upper()
+        if not cleaned or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        normalized.append(cleaned)
+
+    if not normalized:
+        raise HTTPException(status_code=400, detail="No valid flight numbers provided")
+
+    coll = await get_collection()
+    flights_raw = await (
+        coll.find({"flight_number": {"$in": normalized}, "status": "active"})
+        .sort("created_at", -1)
+        .to_list(length=max(20, len(normalized) * 20))
+    )
+
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for doc in flights_raw:
+        fn = doc.get("flight_number")
+        if isinstance(fn, str):
+            groups.setdefault(fn, []).append(doc)
+
+    results: dict[str, Any] = {}
+    for fn in normalized:
+        group = groups.get(fn)
+        if group:
+            doc = _pick_best_flight(group)
+            _normalize_flight_airports(doc)
+            doc.pop("tfms_events", None)
+            results[fn] = _prepare(_clean_flight_payload(doc))
+        else:
+            results[fn] = None
+
+    return results
 
 
 @router.get("/flights/{flight_number}/route")

@@ -41,6 +41,7 @@ This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Ka
 | Method | Path | Description |
 |---|---|---|
 | GET | `/flights/{flight_number}` | Current TFDM flight snapshot, including `tfmsSummary`, `tbfmSummary`, `sfdpsSummary`, and `stddsSummary` |
+| POST | `/flights/batch` | Look up a batch of flight numbers and get a current TFDM snapshot for each; request body is `["AA123", "UA456"]` and the response maps each flight number to its snapshot (or `null` if not found) |
 | GET | `/flights/{flight_number}/tfms` | HTML page listing TFMS messages for the flight |
 | GET | `/flights/{flight_number}/tbfm` | HTML page listing TBFM messages for the flight |
 | GET | `/flights/{flight_number}/sfdps` | HTML page listing SFDPS messages for the flight |
