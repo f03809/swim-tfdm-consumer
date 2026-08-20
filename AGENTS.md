@@ -27,6 +27,6 @@ After making code changes, commit and push them to the `main` branch so the `dep
 - Default write concern was set to `{ w: 1 }` while the secondary is initial-syncing, so consumer writes do not block waiting for a majority. After the secondary becomes `SECONDARY`, consider raising this back to majority if durability is more important than availability.
 - The Devin SSH key for the MongoDB nodes is `.devin/keys/devin_loki_key` (public key in `.devin/keys/devin_loki_key.pub`). It is authorized on both the primary (`root@10.0.0.16:22`) and secondary (`root@10.1.1.27:22`).
 - The `deploy.yml` step deletes the stale `swim-tfdm-consumer-dispatcher` Deployment before applying manifests, so immutable selector changes can be corrected on the next deploy.
-- The app exposes a public HTML flight/message viewer at `/` and an admin portal at `/admin`. The viewer checks whether the `admin` user exists and prompts first-time visitors to set the admin password at `/admin/setup`.
+- The app exposes a public HTML flight/message viewer at `/` and an admin portal at `/admin`. The UI is forced to `/admin/setup` when no admin user exists; the viewer and admin dashboard cannot be used until an admin password is configured. The viewer and admin pages share a dark/light mode toggle and Lucide icons.
 - The JSON endpoints (`/flights/{flight_number}`, `/flights/batch`, `/flights/{flight_number}/route`) require a valid client Bearer token.
 - The `aircraft-tracker` is currently local-only and not yet deployed to a Proxmox VM. It should be moved to a VM and auto-deployed later.
