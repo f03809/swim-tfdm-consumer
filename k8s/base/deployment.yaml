@@ -34,6 +34,12 @@ spec:
         - name: KAFKA_GROUP_ID
           value: "swim-tfdm-consumer"
         - name: JWT_SECRET
-          value: "change-me-please-replace-this-in-production-with-a-secure-secret"
+          valueFrom:
+            secretKeyRef:
+              name: swim-consumer-secrets
+              key: JWT_SECRET
         - name: ADMIN_SESSION_SECRET
-          value: "change-me-admin-session-please-replace-in-production"
+          valueFrom:
+            secretKeyRef:
+              name: swim-consumer-secrets
+              key: ADMIN_SESSION_SECRET
