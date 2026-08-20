@@ -18,6 +18,14 @@
   </style>
 </head>
 <body>
+  <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 0.8rem 1rem; margin-bottom: 1rem; border-radius: 4px;">
+    {% if admin_exists %}
+      <a href="/admin">Admin portal</a>
+    {% else %}
+      <strong>No admin user is set.</strong>
+      <a href="/admin/setup">Set the admin password now</a> to create clients and subscriptions.
+    {% endif %}
+  </div>
   <h1>SWIM TFDM Flights</h1>
   <form method="get" action="/">
     <input type="text" name="q" value="{{ q }}" placeholder="Flight number, e.g. SWA396">

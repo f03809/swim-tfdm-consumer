@@ -2,13 +2,12 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Depends, FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.admin import router as admin_router
 from app.api import router as api_router
-from app.auth import get_current_client, router as auth_router
+from app.auth import router as auth_router
 from app.config import settings
 from app.consumer import TfdmConsumer
 from app.db import close_db
@@ -78,11 +77,7 @@ else:
         session_cookie="admin_session",
     )
 
-    @app.get("/")
-    async def root() -> RedirectResponse:
-        return RedirectResponse(url="/admin", status_code=302)
-
     app.include_router(auth_router)
     app.include_router(subscriptions_router)
     app.include_router(admin_router)
-    app.include_router(api_router, dependencies=[Depends(get_current_client)])
+    app.include_router(api_router)

@@ -5,11 +5,21 @@ from datetime import datetime
 from typing import Any
 
 from bson import ObjectId
-from fastapi import APIRouter, Body, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.db import get_collection, get_route_collection, get_sfdps_collection, get_stdds_collection, get_tbfm_collection, get_tfms_collection
+from app.auth import get_current_client
+
+from app.db import (
+    get_admin_collection,
+    get_collection,
+    get_route_collection,
+    get_sfdps_collection,
+    get_stdds_collection,
+    get_tbfm_collection,
+    get_tfms_collection,
+)
 from app.parser import _content, _get, _normalize_airport
 
 logger = logging.getLogger(__name__)
@@ -251,7 +261,7 @@ async def _resolve_flight(flight_number: str) -> dict[str, Any] | None:
     return _prepare(_clean_flight_payload(doc))
 
 
-@router.get("/flights/{flight_number}")
+@router.get("/flights/{flight_number}", dependencies=[Depends(get_current_client)])
 async def get_flight(flight_number: str) -> dict[str, Any]:
     result = await _resolve_flight(flight_number)
     if result is None:
@@ -259,7 +269,7 @@ async def get_flight(flight_number: str) -> dict[str, Any]:
     return result
 
 
-@router.post("/flights/batch")
+@router.post("/flights/batch", dependencies=[Depends(get_current_client)])
 async def get_flights_batch(flight_numbers: list[str] = Body(..., min_length=1)) -> dict[str, Any]:
     normalized: list[str] = []
     seen: set[str] = set()
@@ -302,7 +312,7 @@ async def get_flights_batch(flight_numbers: list[str] = Body(..., min_length=1))
     return results
 
 
-@router.get("/flights/{flight_number}/route")
+@router.get("/flights/{flight_number}/route", dependencies=[Depends(get_current_client)])
 async def get_flight_route(flight_number: str) -> dict[str, Any]:
     coll = await get_collection()
     route_coll = await get_route_collection()
@@ -549,6 +559,9 @@ async def index(request: Request, q: str | None = None) -> Any:
             stdds_counts[fn] = (doc.get("stddsSummary") or {}).get("stdds_message_count", 0)
         flights.append(_prepare(clean))
 
+    admin_coll = await get_admin_collection()
+    admin_exists = await admin_coll.find_one({"username": "admin"}) is not None
+
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -559,5 +572,6 @@ async def index(request: Request, q: str | None = None) -> Any:
             "sfdps_counts": sfdps_counts,
             "stdds_counts": stdds_counts,
             "q": q or "",
+            "admin_exists": admin_exists,
         },
     )
