@@ -57,5 +57,7 @@ jobs:
           KUBECONFIG: ${{ secrets.KUBECONFIG_PATH || '~/.kube/config' }}
         run: |
           set -e
+          # Clean up the old dispatcher deployment if it has an immutable selector mismatch
+          kubectl -n swim delete deployment swim-tfdm-consumer-dispatcher --ignore-not-found=true
           kubectl kustomize k8s/overlays/prod | kubectl apply -f -
           kubectl -n swim rollout restart deployment/swim-tfdm-consumer
