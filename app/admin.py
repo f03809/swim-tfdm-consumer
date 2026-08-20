@@ -241,6 +241,16 @@ async def admin_create_client(
     )
 
 
+@router.post("/admin/clients/{client_id}/delete")
+async def admin_delete_client(request: Request, client_id: str) -> Any:
+    if not await _is_logged_in(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    coll = await get_clients_collection()
+    await coll.delete_one({"client_id": client_id})
+    return RedirectResponse(url="/admin/clients", status_code=302)
+
+
 @router.post("/admin/clients/{client_id}/revoke")
 async def admin_revoke_client(request: Request, client_id: str) -> Any:
     if not await _is_logged_in(request):
