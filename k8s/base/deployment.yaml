@@ -8,7 +8,6 @@ spec:
   selector:
     matchLabels:
       app: swim-tfdm-consumer
-      component: api
   template:
     metadata:
       labels:
