@@ -23,7 +23,7 @@ spec:
         - name: RUN_MODE
           value: "dispatcher"
         - name: MONGODB_URL
-          value: "mongodb://10.0.0.16:27017"
+          value: "mongodb://10.0.0.16:27017,10.1.1.27:27017/?replicaSet=rs0"
         - name: MONGODB_DB
           value: "swim_tfdm_consumer"
         - name: JWT_SECRET

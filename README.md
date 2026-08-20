@@ -18,7 +18,7 @@ This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Ka
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `MONGODB_URL` | MongoDB connection string | `mongodb://localhost:27017` |
+| `MONGODB_URL` | MongoDB connection string | `mongodb://10.0.0.16:27017,10.1.1.27:27017/?replicaSet=rs0` |
 | `MONGODB_DB` | Database name | `swim_tfdm_consumer` |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka bootstrap list | `localhost:9092` |
 | `KAFKA_TOPIC` | TFDM Kafka topic | `faa-tfdm-raw` |

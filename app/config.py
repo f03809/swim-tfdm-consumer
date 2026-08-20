@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    mongodb_url: str = "mongodb://10.0.0.16:27017"
+    mongodb_url: str = "mongodb://10.0.0.16:27017,10.1.1.27:27017/?replicaSet=rs0"
     mongodb_db: str = "swim_tfdm_consumer"
     mongodb_collection: str = "flights"
     mongodb_tfms_collection: str = "tfms_messages"
