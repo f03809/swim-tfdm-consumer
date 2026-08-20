@@ -25,6 +25,23 @@ class Settings(BaseSettings):
 
     app_host: str = "0.0.0.0"
     app_port: int = 8000
+    run_mode: str = "api"  # "api" or "dispatcher"
+
+    jwt_secret: str = "change-me-please-replace-this-in-production-with-a-secure-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_hours: int = 24
+
+    admin_session_secret: str = "change-me-admin-session-please-replace-in-production"
+    admin_session_max_age: int = 3600  # 1 hour
+
+    inactivity_timeout_min: int = 120
+    preflight_timeout_min: int = 1440  # 24 hours
+    inactivity_scan_interval_min: int = 15
+
+    webhook_timeout_seconds: float = 10.0
+    webhook_retries: int = 5
+    webhook_retry_base_seconds: int = 5
+    webhook_throttle_seconds: float = 1.0
 
 
 settings = Settings()

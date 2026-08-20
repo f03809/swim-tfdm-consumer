@@ -10,6 +10,10 @@ _tbfm_collection: AsyncIOMotorCollection | None = None
 _sfdps_collection: AsyncIOMotorCollection | None = None
 _stdds_collection: AsyncIOMotorCollection | None = None
 _route_collection: AsyncIOMotorCollection | None = None
+_clients_collection: AsyncIOMotorCollection | None = None
+_subscriptions_collection: AsyncIOMotorCollection | None = None
+_flight_webhooks_collection: AsyncIOMotorCollection | None = None
+_admin_collection: AsyncIOMotorCollection | None = None
 
 
 async def ping_mongodb() -> bool:
@@ -102,6 +106,54 @@ async def get_route_collection() -> AsyncIOMotorCollection:
         await _route_collection.create_index("flight_number")
         await _route_collection.create_index("updated_at")
     return _route_collection
+
+
+async def get_clients_collection() -> AsyncIOMotorCollection:
+    global _client, _db, _clients_collection
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _db = _client[settings.mongodb_db]
+    if _clients_collection is None:
+        _clients_collection = _db["clients"]
+        await _clients_collection.create_index("client_id", unique=True)
+        await _clients_collection.create_index("status")
+    return _clients_collection
+
+
+async def get_subscriptions_collection() -> AsyncIOMotorCollection:
+    global _client, _db, _subscriptions_collection
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _db = _client[settings.mongodb_db]
+    if _subscriptions_collection is None:
+        _subscriptions_collection = _db["subscriptions"]
+        await _subscriptions_collection.create_index("client_id")
+        await _subscriptions_collection.create_index("flight_number")
+        await _subscriptions_collection.create_index("status")
+        await _subscriptions_collection.create_index("created_at")
+    return _subscriptions_collection
+
+
+async def get_flight_webhooks_collection() -> AsyncIOMotorCollection:
+    global _client, _db, _flight_webhooks_collection
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _db = _client[settings.mongodb_db]
+    if _flight_webhooks_collection is None:
+        _flight_webhooks_collection = _db["flight_webhooks"]
+        await _flight_webhooks_collection.create_index("flight_number", unique=True)
+    return _flight_webhooks_collection
+
+
+async def get_admin_collection() -> AsyncIOMotorCollection:
+    global _client, _db, _admin_collection
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.mongodb_url)
+        _db = _client[settings.mongodb_db]
+    if _admin_collection is None:
+        _admin_collection = _db["admin"]
+        await _admin_collection.create_index("username", unique=True)
+    return _admin_collection
 
 
 async def close_db() -> None:

@@ -1,0 +1,53 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Subscriptions{% endblock %}
+
+{% block nav %}
+<nav>
+  <a href="/admin/dashboard">Dashboard</a>
+  <a href="/admin/clients">Clients</a>
+  <a href="/admin/subscriptions">Subscriptions</a>
+  <a href="/admin/logout">Log out</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<h1>Subscriptions</h1>
+
+{% if subscriptions %}
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Client</th>
+      <th>Flight</th>
+      <th>Webhook URL</th>
+      <th>Status</th>
+      <th>Failures</th>
+      <th>Created</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for sub in subscriptions %}
+    <tr>
+      <td class="mono">{{ sub.subscription_id }}</td>
+      <td class="mono">{{ sub.client_id }}</td>
+      <td>{{ sub.flight_number }}</td>
+      <td class="mono">{{ sub.webhook_url }}</td>
+      <td>{{ sub.status }}</td>
+      <td>{{ sub.failure_count }}</td>
+      <td>{{ sub.createdAt }}</td>
+      <td>
+        <form method="post" action="/admin/subscriptions/{{ sub.subscription_id }}/cancel" class="inline">
+          <button type="submit" class="danger">Cancel</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No active subscriptions.</p>
+{% endif %}
+{% endblock %}

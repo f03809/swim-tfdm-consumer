@@ -1,39 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: swim-tfdm-consumer
+  name: swim-tfdm-consumer-dispatcher
   namespace: swim
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: swim-tfdm-consumer
-      component: api
+      component: dispatcher
   template:
     metadata:
       labels:
         app: swim-tfdm-consumer
-        component: api
+        component: dispatcher
     spec:
       containers:
-      - name: consumer
+      - name: dispatcher
         image: swim-tfdm-consumer:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
         - name: RUN_MODE
-          value: "api"
+          value: "dispatcher"
         - name: MONGODB_URL
           value: "mongodb://10.0.0.16:27017"
         - name: MONGODB_DB
           value: "swim_tfdm_consumer"
-        - name: KAFKA_BOOTSTRAP_SERVERS
-          value: "10.0.0.94:9092"
-        - name: KAFKA_TOPIC
-          value: "faa-tfdm-raw"
-        - name: KAFKA_GROUP_ID
-          value: "swim-tfdm-consumer"
         - name: JWT_SECRET
           value: "change-me-please-replace-this-in-production-with-a-secure-secret"
         - name: ADMIN_SESSION_SECRET

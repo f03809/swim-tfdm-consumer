@@ -6,4 +6,5 @@ namespace: swim
 resources:
   - namespace.yaml
   - deployment.yaml
+  - dispatcher-deployment.yaml
   - service.yaml

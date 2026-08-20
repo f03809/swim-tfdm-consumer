@@ -1,0 +1,57 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Clients{% endblock %}
+
+{% block nav %}
+<nav>
+  <a href="/admin/dashboard">Dashboard</a>
+  <a href="/admin/clients">Clients</a>
+  <a href="/admin/subscriptions">Subscriptions</a>
+  <a href="/admin/logout">Log out</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<h1>API clients</h1>
+
+{% if new_secret %}
+<div class="success">
+  <strong>New client created:</strong> <span class="mono">{{ new_client_id }}</span><br>
+  <strong>Secret (shown once):</strong> <span class="mono">{{ new_secret }}</span>
+</div>
+{% endif %}
+
+<form method="post">
+  <label for="name">Client name</label>
+  <input type="text" id="name" name="name" required>
+  <button type="submit">Create client</button>
+</form>
+
+{% if clients %}
+<table>
+  <thead>
+    <tr><th>Client ID</th><th>Name</th><th>Status</th><th>Created</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for client in clients %}
+    <tr>
+      <td class="mono">{{ client.client_id }}</td>
+      <td>{{ client.name }}</td>
+      <td>{{ client.status }}</td>
+      <td>{{ client.createdAt }}</td>
+      <td>
+        {% if client.status == 'active' %}
+        <form method="post" action="/admin/clients/{{ client.client_id }}/reissue" class="inline">
+          <button type="submit">Reissue</button>
+        </form>
+        <form method="post" action="/admin/clients/{{ client.client_id }}/revoke" class="inline">
+          <button type="submit" class="danger">Revoke</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

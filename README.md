@@ -1,6 +1,6 @@
 # SWIM TFDM Consumer
 
-This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Kafka broker, stores them in MongoDB, and exposes a small web UI and REST API to inspect flights and their latest data from all feeds.
+This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Kafka broker, stores them in MongoDB, and exposes a small web UI and REST API to inspect flights and their latest data from all feeds. It also supports flight subscriptions with webhook delivery.
 
 ## What it does
 
@@ -11,6 +11,8 @@ This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Ka
 - **STDDS consumer** (`app/stdds_consumer.py`): reads `faa-stdds-raw`, parses STDDS JSON terminal tracks/flight plans, and stores them in `stdds_messages`.
 - **Web UI** (`app/templates/`): lists active flights with message counts and links to per-flight message lists and detail pages for all feeds.
 - **REST API** (`app/api.py`): exposes JSON endpoints for flight snapshots and routes.
+- **Auth & clients** (`app/auth.py`, `app/security.py`, `app/admin.py`): client credentials, JWT tokens, and an admin portal for managing clients and subscriptions.
+- **Subscriptions & webhooks** (`app/subscriptions.py`, `app/dispatcher.py`): clients can subscribe to a flight number and receive webhook calls whenever the flight snapshot changes.
 
 ## Environment variables
 
@@ -26,6 +28,17 @@ This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Ka
 | `KAFKA_AUTO_OFFSET_RESET` | Where to start when no offset exists | `latest` |
 | `MONGODB_COLLECTION` | TFDM collection name | `flights` |
 | `MONGODB_TFMS_COLLECTION` | TFMS collection name | `tfms_messages` |
+| `RUN_MODE` | Process mode: `api` (web/API + consumers) or `dispatcher` (webhook dispatcher) | `api` |
+| `JWT_SECRET` | Secret used to sign JWT access tokens | `change-me` |
+| `ADMIN_SESSION_SECRET` | Secret used to sign admin portal session cookies | `change-me-admin-session` |
+| `JWT_EXPIRY_HOURS` | JWT token lifetime in hours | `24` |
+| `INACTIVITY_TIMEOUT_MIN` | Minutes of no SWIM messages before a subscription is removed | `120` |
+| `PREFLIGHT_TIMEOUT_MIN` | Minutes before the first SWIM message before a subscription is removed | `1440` |
+| `INACTIVITY_SCAN_INTERVAL_MIN` | Minutes between inactivity scans | `15` |
+| `WEBHOOK_TIMEOUT_SECONDS` | Per-attempt webhook HTTP timeout | `10` |
+| `WEBHOOK_RETRIES` | Number of webhook retry attempts | `5` |
+| `WEBHOOK_RETRY_BASE_SECONDS` | Base delay for exponential retries | `5` |
+| `WEBHOOK_THROTTLE_SECONDS` | Minimum seconds between webhooks for the same flight | `1` |
 
 ## MongoDB collections
 
@@ -35,6 +48,10 @@ This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Ka
 - `sfdps_messages` — all parsed SFDPS JSON flight messages with a link to a TFDM flight when one can be matched.
 - `stdds_messages` — all parsed STDDS JSON terminal track/flight plan records with a link to a TFDM flight when one can be matched.
 - `flight_routes` — the latest known planned route per flight. When a TFMS route message can be matched to a `flights` doc, the `flight_routes` `_id` is the linked `flights._id`; otherwise it falls back to `flight_number`/`departure`/`arrival`.
+- `clients` — API client credentials created via the admin portal.
+- `subscriptions` — active/failing flight subscriptions and delivery attempt state.
+- `flight_webhooks` — last-sent snapshot, send timestamp, and throttle state per flight.
+- `admin` — admin user record for the portal.
 
 ## API endpoints
 
@@ -52,6 +69,13 @@ This service consumes TFDM, TFMS, TBFM, SFDPS, and STDDS messages from a SWIM Ka
 | GET | `/sfdps/{sfdps_id}` | HTML detail page with raw SFDPS message JSON |
 | GET | `/stdds/{stdds_id}` | HTML detail page with raw STDDS message JSON |
 | GET | `/` | HTML flight list |
+| POST | `/api/v1/auth/token` | Exchange client credentials (HTTP Basic) for a JWT |
+| GET | `/api/v1/subscriptions` | List the authenticated client's active/failing subscriptions |
+| GET | `/api/v1/subscriptions/{subscription_id}` | Get a single subscription |
+| DELETE | `/api/v1/subscriptions/{subscription_id}` | Unsubscribe |
+| GET | `/admin` | Admin portal (session-based) |
+
+All endpoints except `/api/v1/auth/token` and `/admin` require a valid `Authorization: Bearer <token>` header.
 
 ## Flight API fields
 
@@ -156,3 +180,24 @@ The latest planned route is maintained in `flight_routes` and is updated on the 
 - `flightPlanAmendmentInformation` — route amendments in legacy string format.
 
 The `/flights/{flight_number}/route` endpoint returns the most recently updated route for that flight number.
+
+## Subscriptions and webhooks
+
+An admin creates client credentials through `/admin`. A client authenticates with `POST /api/v1/auth/token` (HTTP Basic), then creates subscriptions with `POST /api/v1/subscriptions`.
+
+When a SWIM message causes the flight snapshot to change, the dispatcher sends a `FLIGHT_UPDATED` webhook to the subscription's `webhook_url`:
+
+```json
+{
+  "subscription_id": "...",
+  "event_type": "FLIGHT_UPDATED",
+  "flight": { ... same as /flights/{flight_number} ... },
+  "previous_flight": { ... or null ... }
+}
+```
+
+The diff ignores `_id`, `createdAt`, `updatedAt`, and `status`. A `status` of `deleted` always triggers a final `FLIGHT_UPDATED` before the subscription is removed.
+
+Webhooks are throttled to one per flight per second. Failed deliveries are retried up to 5 times with exponential backoff. A subscription is removed after 10 consecutive delivery failures, 2 hours with no SWIM messages, or when the client calls `DELETE /api/v1/subscriptions/{subscription_id}`.
+
+A separate `swim-tfdm-consumer-dispatcher` deployment (one replica, `RUN_MODE=dispatcher`) watches the MongoDB `flights` collection for changes. If MongoDB change streams are unavailable, it falls back to polling.
