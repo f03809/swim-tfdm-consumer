@@ -1,17 +1,17 @@
 {% extends "admin_base.html" %}
 
-{% block admin_title %}Clients{% endblock %}
+{% block admin_title %}API Clients{% endblock %}
 
 {% block admin_content %}
-  <h1 class="page-title">API clients</h1>
+  <h1 class="page-title">API Clients</h1>
   <p class="page-subtitle">Create and manage API clients that can read flight data and manage subscriptions.</p>
 
   {% if new_secret %}
-    <div class="admin-alert admin-alert-success">
-      <i data-lucide="check-circle" style="width: 1rem; height: 1rem;"></i>
+    <div class="admin-alert admin-alert-warning">
+      <i data-lucide="clipboard-copy" style="width: 1rem; height: 1rem;"></i>
       <div>
-        <strong>New client created:</strong> <span class="mono">{{ new_client_id }}</span><br>
-        <strong>Secret (shown once):</strong> <span class="mono">{{ new_secret }}</span>
+        <strong>New client created.</strong> Copy the client ID and client secret below immediately.<br>
+        The secret is shown only once and cannot be retrieved. If you lose it, you must reissue a new one.
       </div>
     </div>
   {% endif %}
@@ -19,7 +19,7 @@
   <form method="post" class="admin-form admin-form-inline">
     <label for="name">Client name</label>
     <div class="admin-form-row">
-      <input type="text" id="name" name="name" required class="admin-input">
+      <input type="text" id="name" name="name" required class="admin-input" placeholder="e.g. aircraft-tracker">
       <button type="submit" class="btn">
         <i data-lucide="plus" style="width: 1rem; height: 1rem;"></i>
         Create client
@@ -32,8 +32,9 @@
       <table>
         <thead>
           <tr>
-            <th>Client ID</th>
             <th>Name</th>
+            <th>Client ID</th>
+            <th>Client Secret</th>
             <th>Status</th>
             <th>Created</th>
             <th>Actions</th>
@@ -41,9 +42,24 @@
         </thead>
         <tbody>
           {% for client in clients %}
-          <tr>
-            <td class="mono">{{ client.client_id }}</td>
+          <tr {% if client.client_id == new_client_id %}class="new-client-row"{% endif %}>
             <td>{{ client.name }}</td>
+            <td class="mono copy-cell" data-value="{{ client.client_id }}">
+              {{ client.client_id }}
+              <button type="button" class="copy-btn" aria-label="Copy client ID" title="Copy client ID">
+                <i data-lucide="copy" style="width: 0.75rem; height: 0.75rem;"></i>
+              </button>
+            </td>
+            <td class="copy-cell">
+              {% if client.client_id == new_client_id %}
+                <span class="mono secret-value" data-value="{{ new_secret }}">{{ new_secret }}</span>
+                <button type="button" class="copy-btn" aria-label="Copy client secret" title="Copy client secret">
+                  <i data-lucide="copy" style="width: 0.75rem; height: 0.75rem;"></i>
+                </button>
+              {% else %}
+                <span class="muted">Hidden</span>
+              {% endif %}
+            </td>
             <td>
               <span class="badge badge-count">{{ client.status }}</span>
             </td>
@@ -66,4 +82,21 @@
   {% else %}
     <p class="muted">No clients yet.</p>
   {% endif %}
+
+  <script>
+    (function () {
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const cell = btn.closest('.copy-cell');
+          const secret = cell.querySelector('.secret-value');
+          const text = secret ? secret.dataset.value : cell.dataset.value;
+          navigator.clipboard.writeText(text).then(function () {
+            const original = btn.innerHTML;
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:0.75rem;height:0.75rem"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            setTimeout(function () { btn.innerHTML = original; if (typeof lucide !== 'undefined') lucide.createIcons(); }, 1500);
+          });
+        });
+      });
+    })();
+  </script>
 {% endblock %}

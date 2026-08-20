@@ -519,6 +519,12 @@ pre, .code-block {
   border: 1px solid #22c55e;
 }
 
+.admin-alert-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -571,6 +577,35 @@ pre, .code-block {
 .inline-form {
   display: inline-block;
   margin-right: 0.35rem;
+}
+
+.copy-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.copy-btn:hover {
+  background: var(--surface-2);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.new-client-row {
+  background: var(--accent-bg) !important;
 }
 
 .password-criteria {
