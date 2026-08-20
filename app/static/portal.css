@@ -274,6 +274,11 @@ html[data-theme="dark"] .theme-icon-dark {
   transform: translateY(1px);
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -566,6 +571,50 @@ pre, .code-block {
 .inline-form {
   display: inline-block;
   margin-right: 0.35rem;
+}
+
+.password-criteria {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.password-criteria li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0;
+  transition: color 0.15s;
+}
+
+.criteria-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.criteria-icon svg {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.criteria-met {
+  color: var(--text);
+}
+
+.criteria-met .criteria-icon {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+  color: #22c55e;
 }
 
 /* Utility */

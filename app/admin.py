@@ -96,11 +96,17 @@ async def admin_setup_post(
             status_code=400,
         )
 
-    if len(password) < 8:
+    if (
+        len(password) < 8
+        or not any(c.isupper() for c in password)
+        or not any(c.islower() for c in password)
+        or not any(c.isdigit() for c in password)
+        or not any(not c.isalnum() for c in password)
+    ):
         return templates.TemplateResponse(
             request,
             "admin_setup.html",
-            {"error": "Password must be at least 8 characters"},
+            {"error": "Password does not meet complexity requirements"},
             status_code=400,
         )
 

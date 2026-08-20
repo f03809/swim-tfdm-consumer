@@ -13,16 +13,99 @@
     </div>
   {% endif %}
 
-  <form method="post" class="admin-form">
+  <form method="post" class="admin-form" id="setup-form">
     <label for="password">Password</label>
-    <input type="password" id="password" name="password" required minlength="8" class="admin-input">
+    <input type="password" id="password" name="password" required minlength="8" class="admin-input" autocomplete="new-password">
 
     <label for="confirm_password">Confirm password</label>
-    <input type="password" id="confirm_password" name="confirm_password" required minlength="8" class="admin-input">
+    <input type="password" id="confirm_password" name="confirm_password" required minlength="8" class="admin-input" autocomplete="new-password">
 
-    <button type="submit" class="btn">
+    <ul class="password-criteria">
+      <li id="crit-length" data-check="length">
+        <span class="criteria-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        At least 8 characters
+      </li>
+      <li id="crit-upper" data-check="upper">
+        <span class="criteria-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        One uppercase letter
+      </li>
+      <li id="crit-lower" data-check="lower">
+        <span class="criteria-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        One lowercase letter
+      </li>
+      <li id="crit-number" data-check="number">
+        <span class="criteria-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        One number
+      </li>
+      <li id="crit-symbol" data-check="symbol">
+        <span class="criteria-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        One symbol
+      </li>
+      <li id="crit-match" data-check="match">
+        <span class="criteria-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        Passwords match
+      </li>
+    </ul>
+
+    <button type="submit" class="btn" id="submit-btn" disabled>
       <i data-lucide="save" style="width: 1rem; height: 1rem;"></i>
       Set password
     </button>
   </form>
+
+  <script>
+    (function () {
+      const password = document.getElementById('password');
+      const confirm = document.getElementById('confirm_password');
+      const submit = document.getElementById('submit-btn');
+      const criteria = {
+        length: document.getElementById('crit-length'),
+        upper: document.getElementById('crit-upper'),
+        lower: document.getElementById('crit-lower'),
+        number: document.getElementById('crit-number'),
+        symbol: document.getElementById('crit-symbol'),
+        match: document.getElementById('crit-match'),
+      };
+
+      function setMet(el, met) {
+        el.classList.toggle('criteria-met', met);
+      }
+
+      function validate() {
+        const p = password.value;
+        const c = confirm.value;
+        const checks = {
+          length: p.length >= 8,
+          upper: /[A-Z]/.test(p),
+          lower: /[a-z]/.test(p),
+          number: /[0-9]/.test(p),
+          symbol: /[^A-Za-z0-9]/.test(p),
+          match: p.length > 0 && p === c,
+        };
+
+        for (const key in checks) {
+          setMet(criteria[key], checks[key]);
+        }
+
+        const allMet = Object.values(checks).every(Boolean);
+        submit.disabled = !allMet;
+      }
+
+      password.addEventListener('input', validate);
+      confirm.addEventListener('input', validate);
+      validate();
+    })();
+  </script>
 {% endblock %}
