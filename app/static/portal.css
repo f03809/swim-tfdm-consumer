@@ -579,10 +579,9 @@ pre, .code-block {
   margin-right: 0.35rem;
 }
 
-.copy-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+td.copy-cell {
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .copy-btn {
@@ -590,6 +589,7 @@ pre, .code-block {
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
+  margin-left: 0.4rem;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
