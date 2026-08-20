@@ -12,7 +12,6 @@ from fastapi.templating import Jinja2Templates
 from app.auth import get_current_client
 
 from app.db import (
-    get_admin_collection,
     get_collection,
     get_route_collection,
     get_sfdps_collection,
@@ -559,9 +558,6 @@ async def index(request: Request, q: str | None = None) -> Any:
             stdds_counts[fn] = (doc.get("stddsSummary") or {}).get("stdds_message_count", 0)
         flights.append(_prepare(clean))
 
-    admin_coll = await get_admin_collection()
-    admin_exists = await admin_coll.find_one({"username": "admin"}) is not None
-
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -572,6 +568,5 @@ async def index(request: Request, q: str | None = None) -> Any:
             "sfdps_counts": sfdps_counts,
             "stdds_counts": stdds_counts,
             "q": q or "",
-            "admin_exists": admin_exists,
         },
     )

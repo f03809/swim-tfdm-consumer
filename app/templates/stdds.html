@@ -1,61 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STDDS Messages for {{ flight_number }}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f7f7; }
-    h1 { margin-bottom: 1rem; }
-    a { color: #0366d6; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    table { width: 100%; border-collapse: collapse; background: white; }
-    th, td { border: 1px solid #ddd; padding: 0.6rem; text-align: left; }
-    th { background: #eee; }
-    tr:nth-child(even) { background: #f9f9f9; }
-    .muted { color: #777; }
-    .empty { text-align: center; color: #777; padding: 1rem; }
-  </style>
-</head>
-<body>
-  <h1>STDDS Messages for {{ flight_number }}</h1>
-  <p><a href="/">&larr; Back to flights</a></p>
+{% extends "base.html" %}
 
-  <table>
-    <thead>
-      <tr>
-        <th>Detail</th>
-        <th>Track Num</th>
-        <th>MRT Time</th>
-        <th>Src</th>
-        <th>Beacon</th>
-        <th>Altitude</th>
-        <th>Lat</th>
-        <th>Lon</th>
-        <th>Flight</th>
-        <th>GUFI</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for msg in stdds_messages %}
-      <tr>
-        <td><a href="/stdds/{{ msg._id }}">Detail</a></td>
-        <td>{{ msg.track_num or '-' }}</td>
-        <td class="muted">{{ msg.mrt_time or '-' }}</td>
-        <td class="muted">{{ msg.src or '-' }}</td>
-        <td>{{ msg.reported_beacon_code or '-' }}</td>
-        <td>{{ msg.reported_altitude or '-' }}</td>
-        <td>{{ msg.lat or '-' }}</td>
-        <td>{{ msg.lon or '-' }}</td>
-        <td>{{ msg.flight_number or '-' }}</td>
-        <td class="muted">{{ msg.gufi or '-' }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td class="empty" colspan="10">No STDDS messages found for this flight.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</body>
-</html>
+{% block title %}STDDS Messages for {{ flight_number }}{% endblock %}
+
+{% block content %}
+  <nav class="breadcrumb">
+    <a href="/">
+      <i data-lucide="home" style="width: 0.8rem; height: 0.8rem;"></i>
+      Flights
+    </a>
+    <span class="muted">/</span>
+    <span>STDDS: {{ flight_number }}</span>
+  </nav>
+
+  <h1 class="page-title">
+    <i data-lucide="radar" class="brand-icon"></i>
+    STDDS Messages for {{ flight_number }}
+  </h1>
+  <p class="page-subtitle">Standard Terminal Automation Replacement System tracks</p>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Detail</th>
+            <th>Track</th>
+            <th>MRT Time</th>
+            <th>Src</th>
+            <th>Beacon</th>
+            <th>Altitude</th>
+            <th>Lat</th>
+            <th>Lon</th>
+            <th>Flight</th>
+            <th>GUFI</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for msg in stdds_messages %}
+          <tr>
+            <td>
+              <a href="/stdds/{{ msg._id }}" class="detail-link">
+                <i data-lucide="file-text" style="width: 0.8rem; height: 0.8rem;"></i>
+                Detail
+              </a>
+            </td>
+            <td>{{ msg.track_num or '-' }}</td>
+            <td class="muted">{{ msg.mrt_time or '-' }}</td>
+            <td class="muted">{{ msg.src or '-' }}</td>
+            <td>{{ msg.reported_beacon_code or '-' }}</td>
+            <td>{{ msg.reported_altitude or '-' }}</td>
+            <td>{{ msg.lat or '-' }}</td>
+            <td>{{ msg.lon or '-' }}</td>
+            <td>{{ msg.flight_number or '-' }}</td>
+            <td class="muted">{{ msg.gufi or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td class="empty-cell" colspan="10">No STDDS messages found for this flight.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

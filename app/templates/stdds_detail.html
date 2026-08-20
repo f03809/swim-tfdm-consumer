@@ -1,28 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STDDS Message Detail</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f7f7; }
-    h1 { margin-bottom: 1rem; }
-    a { color: #0366d6; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .meta { background: white; padding: 1rem; border: 1px solid #ddd; margin-bottom: 1rem; }
-    .meta p { margin: 0.25rem 0; }
-    pre { background: white; padding: 1rem; border: 1px solid #ddd; overflow-x: auto; }
-  </style>
-</head>
-<body>
-  <h1>STDDS Message Detail</h1>
-  <p>
-    <a href="/flights/{{ flight_number }}/stdds">&larr; Back to STDDS list for {{ flight_number }}</a>
-    &nbsp;|&nbsp;
-    <a href="/">Back to flights</a>
-  </p>
+{% extends "base.html" %}
 
-  <div class="meta">
+{% block title %}STDDS Message Detail{% endblock %}
+
+{% block content %}
+  <nav class="breadcrumb">
+    <a href="/">
+      <i data-lucide="home" style="width: 0.8rem; height: 0.8rem;"></i>
+      Flights
+    </a>
+    <span class="muted">/</span>
+    <a href="/flights/{{ flight_number }}/stdds">STDDS: {{ flight_number }}</a>
+    <span class="muted">/</span>
+    <span>Detail</span>
+  </nav>
+
+  <h1 class="page-title">
+    <i data-lucide="radar" class="brand-icon"></i>
+    STDDS Message Detail
+  </h1>
+
+  <div class="meta-list">
     <p><strong>Source:</strong> {{ message.src or '-' }}</p>
     <p><strong>Track Num:</strong> {{ message.track_num or '-' }}</p>
     <p><strong>MRT Time:</strong> {{ message.mrt_time or '-' }}</p>
@@ -39,7 +36,9 @@
     <p><strong>Runway:</strong> {{ message.runway or '-' }}</p>
   </div>
 
-  <h2>Raw JSON</h2>
+  <h2 class="section-title">
+    <i data-lucide="file-json-2" style="width: 1rem; height: 1rem;"></i>
+    Raw JSON
+  </h2>
   <pre>{{ formatted_json | e }}</pre>
-</body>
-</html>
+{% endblock %}

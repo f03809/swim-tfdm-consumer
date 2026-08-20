@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SWIM TFDM{% endblock %}</title>
+  <link rel="stylesheet" href="/static/portal.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/static/portal.js" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="portal-header">
+    <div class="header-brand">
+      <a href="/" class="brand-link">
+        <i data-lucide="plane" class="brand-icon"></i>
+        <span class="brand-text">SWIM TFDM Viewer</span>
+      </a>
+    </div>
+
+    <div class="header-actions">
+      {% if request.state.admin_exists %}
+        <a href="/admin" class="header-link">
+          <i data-lucide="settings"></i>
+          <span>Admin</span>
+        </a>
+      {% else %}
+        <a href="/admin/setup" class="header-link header-link-pulse">
+          <i data-lucide="user-cog"></i>
+          <span>Set admin password</span>
+        </a>
+      {% endif %}
+
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <i data-lucide="sun" class="theme-icon-light"></i>
+        <i data-lucide="moon" class="theme-icon-dark"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

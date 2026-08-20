@@ -1,100 +1,110 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SWIM TFDM Flights</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f7f7; }
-    h1 { margin-bottom: 1rem; }
-    form { margin-bottom: 1.5rem; }
-    input[type="text"] { padding: 0.5rem; font-size: 1rem; width: 250px; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; background: white; }
-    th, td { border: 1px solid #ddd; padding: 0.6rem; text-align: left; }
-    th { background: #eee; }
-    tr:nth-child(even) { background: #f9f9f9; }
-    .muted { color: #777; }
-  </style>
-</head>
-<body>
-  <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 0.8rem 1rem; margin-bottom: 1rem; border-radius: 4px;">
-    {% if admin_exists %}
-      <a href="/admin">Admin portal</a>
-    {% else %}
-      <strong>No admin user is set.</strong>
-      <a href="/admin/setup">Set the admin password now</a> to create clients and subscriptions.
-    {% endif %}
-  </div>
-  <h1>SWIM TFDM Flights</h1>
-  <form method="get" action="/">
-    <input type="text" name="q" value="{{ q }}" placeholder="Flight number, e.g. SWA396">
-    <button type="submit">Search</button>
+{% extends "base.html" %}
+
+{% block title %}SWIM TFDM Flights{% endblock %}
+
+{% block content %}
+  {% if not request.state.admin_exists %}
+    <div class="admin-banner">
+      <i data-lucide="alert-circle"></i>
+      <span>No admin user is set. <a href="/admin/setup">Set the admin password now</a> to create clients and subscriptions.</span>
+    </div>
+  {% endif %}
+
+  <h1 class="page-title">SWIM TFDM Flights</h1>
+  <p class="page-subtitle">Live flight feed from the SWIM pipeline</p>
+
+  <form method="get" action="/" class="search-form card" style="padding: 1rem;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Flight number, e.g. SWA396" class="search-input">
+    <button type="submit" class="btn">
+      <i data-lucide="search"></i>
+      <span>Search</span>
+    </button>
   </form>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Flight Number</th>
-        <th>tfdmId</th>
-        <th>tfmId</th>
-        <th>Flight Plan</th>
-        <th>Status</th>
-        <th>Created</th>
-        <th>Departure</th>
-        <th>Arrival</th>
-        <th>TFMS</th>
-        <th>TBFM</th>
-        <th>SFDPS</th>
-        <th>STDDS</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for flight in flights %}
-      <tr>
-        <td>{{ flight.flightNumber or '-' }}</td>
-        <td class="muted">{{ flight.tfdmId or '-' }}</td>
-        <td class="muted">{{ flight.tfmId or '-' }}</td>
-        <td class="muted">{{ flight.flightPlanIdentifier or '-' }}</td>
-        <td>{{ flight.flightState or '-' }}</td>
-        <td class="muted">{{ flight.createdAt or '-' }}</td>
-        <td>{{ flight.departure.airport if flight.departure else '-' }}</td>
-        <td>{{ flight.arrival.airport if flight.arrival else '-' }}</td>
-        <td>
-          {% if flight.flightNumber %}
-            <a href="/flights/{{ flight.flightNumber }}/tfms">{{ tfms_counts.get(flight.flightNumber, 0) }}</a>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Flight</th>
+            <th>TFDM ID</th>
+            <th>TFM ID</th>
+            <th>Flight Plan</th>
+            <th>State</th>
+            <th>Departure</th>
+            <th>Arrival</th>
+            <th>TFMS</th>
+            <th>TBFM</th>
+            <th>SFDPS</th>
+            <th>STDDS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for flight in flights %}
+          <tr>
+            <td>
+              <span class="badge">{{ flight.flightNumber or '-' }}</span>
+            </td>
+            <td class="muted">{{ flight.tfdmId or '-' }}</td>
+            <td class="muted">{{ flight.tfmId or '-' }}</td>
+            <td class="muted">{{ flight.flightPlanIdentifier or '-' }}</td>
+            <td>
+              {% if flight.flightState %}
+                <span class="badge badge-count">{{ flight.flightState }}</span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>{{ flight.departure.airport if flight.departure else '-' }}</td>
+            <td>{{ flight.arrival.airport if flight.arrival else '-' }}</td>
+            <td>
+              {% if flight.flightNumber %}
+                <a href="/flights/{{ flight.flightNumber }}/tfms" class="count-link">
+                  <i data-lucide="message-square" style="width: 0.8rem; height: 0.8rem;"></i>
+                  {{ tfms_counts.get(flight.flightNumber, 0) }}
+                </a>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if flight.flightNumber %}
+                <a href="/flights/{{ flight.flightNumber }}/tbfm" class="count-link">
+                  <i data-lucide="clock" style="width: 0.8rem; height: 0.8rem;"></i>
+                  {{ tbfm_counts.get(flight.flightNumber, 0) }}
+                </a>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if flight.flightNumber %}
+                <a href="/flights/{{ flight.flightNumber }}/sfdps" class="count-link">
+                  <i data-lucide="map" style="width: 0.8rem; height: 0.8rem;"></i>
+                  {{ sfdps_counts.get(flight.flightNumber, 0) }}
+                </a>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if flight.flightNumber %}
+                <a href="/flights/{{ flight.flightNumber }}/stdds" class="count-link">
+                  <i data-lucide="radar" style="width: 0.8rem; height: 0.8rem;"></i>
+                  {{ stdds_counts.get(flight.flightNumber, 0) }}
+                </a>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
           {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>
-          {% if flight.flightNumber %}
-            <a href="/flights/{{ flight.flightNumber }}/tbfm">{{ tbfm_counts.get(flight.flightNumber, 0) }}</a>
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>
-          {% if flight.flightNumber %}
-            <a href="/flights/{{ flight.flightNumber }}/sfdps">{{ sfdps_counts.get(flight.flightNumber, 0) }}</a>
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>
-          {% if flight.flightNumber %}
-            <a href="/flights/{{ flight.flightNumber }}/stdds">{{ stdds_counts.get(flight.flightNumber, 0) }}</a>
-          {% else %}
-            -
-          {% endif %}
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="12" style="text-align: center;">No flights found.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</body>
-</html>
+          <tr>
+            <td class="empty-cell" colspan="11">No flights found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

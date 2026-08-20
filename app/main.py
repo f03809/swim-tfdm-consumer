@@ -2,7 +2,8 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.admin import router as admin_router
@@ -10,7 +11,7 @@ from app.api import router as api_router
 from app.auth import router as auth_router
 from app.config import settings
 from app.consumer import TfdmConsumer
-from app.db import close_db
+from app.db import close_db, get_admin_collection
 from app.dispatcher import start as start_dispatcher, stop as stop_dispatcher
 from app.sfdps_consumer import SfdpsConsumer
 from app.stdds_consumer import StddsConsumer
@@ -77,6 +78,20 @@ else:
         session_cookie="admin_session",
     )
 
+    @app.middleware("http")
+    async def admin_check_middleware(request: Request, call_next: Any) -> Any:
+        skip_prefixes = ("/static", "/api/v1", "/auth")
+        if any(request.url.path.startswith(p) for p in skip_prefixes):
+            request.state.admin_exists = True
+        else:
+            try:
+                coll = await get_admin_collection()
+                request.state.admin_exists = await coll.find_one({"username": "admin"}) is not None
+            except Exception:
+                request.state.admin_exists = True
+        return await call_next(request)
+
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
     app.include_router(auth_router)
     app.include_router(subscriptions_router)
     app.include_router(admin_router)
